@@ -253,6 +253,16 @@ document.addEventListener("keydown",(e)=>{
   if(e.code==="Space"){jump(); if(backgroundSound.paused){backgroundSound.play();}}
   if(e.code==="KeyP"){togglePause();}
 });
+// Make dino jump on click/tap
+canvas.addEventListener("click", () => {
+  jump();
+  if (backgroundSound.paused) backgroundSound.play();
+});
+canvas.addEventListener("touchstart", (e) => {
+  e.preventDefault(); // prevent scrolling
+  jump();
+  if (backgroundSound.paused) backgroundSound.play();
+}, {passive: false});
 
 dinoImg.onload=()=>{update(); spawnCactus();}
 window.addEventListener("resize",()=>{canvas.height=window.innerHeight-120;});
