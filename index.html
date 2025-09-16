@@ -246,8 +246,33 @@ function togglePause(){
   paused=!paused;
   document.getElementById("pauseMenu").style.display=paused?"flex":"none";
 }
-function resumeGame(){togglePause();}
-function restartGame(){score=0; gameOver=false; cactuses=[]; spawnCactus(); update(); togglePause();}
+function resumeGame(){
+  paused = false;
+  document.getElementById("pauseMenu").style.display = "none";
+}
+
+function restartGame(){
+  // Reset game state
+  score = 0;
+  gameOver = false;
+  paused = false;
+  cactuses = [];
+
+  // Reset dino
+  dino.y = -10;
+  dino.dy = 0;
+  dino.isJumping = false;
+
+  // Hide pause menu if shown
+  document.getElementById("pauseMenu").style.display = "none";
+
+  // Start spawning cactuses again
+  spawnCactus();
+
+  // Only call update once if not already running
+  // (update loop is recursive via requestAnimationFrame)
+}
+
 
 document.addEventListener("keydown",(e)=>{
   if(e.code==="Space"){jump(); if(backgroundSound.paused){backgroundSound.play();}}
