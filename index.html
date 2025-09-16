@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Custom Dino Game</title>
+<style>
+body {
+  margin:0;
+  background:#f7f7f7;
+  font-family:sans-serif;
+  overflow:hidden;
+}
+.settings {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background: white;
+  border-bottom: 2px solid black;
+  padding: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  z-index: 10;
+  box-sizing: border-box;
+}
+.settings label {
+  display:flex;
+  flex-direction: column;
+  font-size:14px;
+}
+input[type=range]{ width: 150px; }
+canvas {
+  display:block;
+  position:absolute;
+  top:120px;
+  left:0;
+  width:100%;
+  height:calc(100vh - 120px);
+}
+#pauseMenu{
+  position: fixed;
+  top:120px;
+  left:0;
+  width:100%;
+  height: calc(100vh - 120px);
+  background: rgba(0,0,0,0.7);
+  color:white;
+  display:none;
+  justify-content:center;
+  align-items:center;
+  z-index:20;
+}
+#pauseMenu div{text-align:center;}
+#pauseMenu button{margin:10px; padding:10px 20px; font-size:16px; cursor:pointer;}
+</style>
+</head>
+<body>
+
+<div class="settings">
+  <label>
+    Cactus Spawn Frequency (ms)
+    <input type="range" min="400" max="2000" id="spawnFreq">
+    <span id="spawnFreqVal"></span>
+  </label>
+  <label>
+    Dino Speed
+    <input type="range" min="2" max="12" id="dinoSpeed">
+    <span id="dinoSpeedVal"></span>
+  </label>
+  <label>
+    Jump Power
+    <input type="range" min="6" max="20" id="jumpPower">
+    <span id="jumpPowerVal"></span>
+  </label>
+  <label>
+    Gravity
+    <input type="range" min="0.2" max="2" step="0.1" id="gravity">
+    <span id="gravityVal"></span>
+  </label>
+  <label>
+    Passive Score Rate (+points/sec)
+    <input type="range" min="0" max="1" step="0.05" id="scoreRate">
+    <span id="scoreRateVal"></span>
+  </label>
+  <label>
+    Hard Jump Chance (%)
+    <input type="range" min="0" max="50" id="hardJump">
+    <span id="hardJumpVal"></span>
+  </label>
+  <label>
+    Character Hitbox Height
+    <input type="range" min="20" max="100" id="hitHeight">
+    <span id="hitHeightVal"></span>
+  </label>
+  <button id="resetSettings">Reset Settings</button>
+</div>
+
+<canvas id="gameCanvas"></canvas>
+
+<div id="pauseMenu">
+  <div>
+    <h2>Game Paused</h2>
+    <button onclick="resumeGame()">Resume</button>
+    <button onclick="restartGame()">Restart</button>
+  </div>
+</div>
+
+<script>
+const canvas=document.getElementById("gameCanvas");
+const ctx=canvas.getContext("2d");
+canvas.width=window.innerWidth;
+canvas.height=window.innerHeight-120;
+
+const dinoImg=new Image();
+const cacImg=new Image();
+dinoImg.src="./lw.png";
+cacImg.src="./cac.png";
+
+const passSound=new Audio("./sound.mp3");
+const milestoneSound=new Audio("./over.mp3");
+const backgroundSound=new Audio("./back.mp3");
+backgroundSound.loop=true;
+backgroundSound.volume=0.4;
+
+// Settings
+const settings = {
+  spawnFreq: document.getElementById("spawnFreq"),
+  dinoSpeed: document.getElementById("dinoSpeed"),
+  jumpPower: document.getElementById("jumpPower"),
+  gravity: document.getElementById("gravity"),
+  scoreRate: document.getElementById("scoreRate"),
+  hardJump: document.getElementById("hardJump"),
+  hitHeight: document.getElementById("hitHeight")
+};
+const displayValues = {
+  spawnFreqVal: document.getElementById("spawnFreqVal"),
+  dinoSpeedVal: document.getElementById("dinoSpeedVal"),
+  jumpPowerVal: document.getElementById("jumpPowerVal"),
+  gravityVal: document.getElementById("gravityVal"),
+  scoreRateVal: document.getElementById("scoreRateVal"),
+  hardJumpVal: document.getElementById("hardJumpVal"),
+  hitHeightVal: document.getElementById("hitHeightVal")
+};
+
+const defaults={spawnFreq:1000,dinoSpeed:6,jumpPower:12,gravity:0.6,scoreRate:0.2,hardJump:12.5,hitHeight:30};
+for(let key in settings){
+  settings[key].value=localStorage.getItem(key)||defaults[key];
+  displayValues[key+"Val"].textContent=settings[key].value;
+  settings[key].addEventListener("input",()=>{
+    displayValues[key+"Val"].textContent=settings[key].value;
+    localStorage.setItem(key,settings[key].value);
+  });
+}
+
+// Reset settings button
+document.getElementById("resetSettings").addEventListener("click",()=>{
+  for(let key in defaults){
+    localStorage.setItem(key, defaults[key]);
+  }
+  location.reload();
+});
+
+let dino={
+  x:50,
+  y:-10,
+  width:60,
+  height:70,
+  hitHeight:parseFloat(settings.hitHeight.value),
+  dy:0,
+  gravity:parseFloat(settings.gravity.value),
+  jumpPower:-parseFloat(settings.jumpPower.value),
+  isJumping:false
+};
+let cactuses=[];
+let score=0;
+let highScore=localStorage.getItem("highScore")||0;
+let gameOver=false;
+let paused=false;
+const ground=canvas.height-80;
+
+function drawDino(){ctx.drawImage(dinoImg,dino.x,dino.y,dino.width,dino.height);}
+function drawCactus(c){ctx.drawImage(cacImg,c.x,c.y,c.width,c.height);}
+
+function spawnCactus(){
+  if(paused||gameOver) return;
+  let width=Math.floor(Math.random()*30)+20;
+  let height=Math.floor(Math.random()*50)+40;
+  let gap;
+  if(Math.random()*100<parseFloat(settings.hardJump.value)){
+    gap=Math.floor(Math.random()*200)+400;
+    let first={x:canvas.width+gap,y:ground+(60-height),width:width,height:height};
+    // smaller hard jump gap
+    let second={x:first.x+first.width+Math.floor(Math.random()*10)+10,y:ground+(60-height),width:width,height:height};
+    cactuses.push(first,second);
+  }else{
+    gap=Math.floor(Math.random()*200)+400;
+    cactuses.push({x:canvas.width+gap,y:ground+(60-height),width:width,height:height});
+  }
+  setTimeout(spawnCactus,Math.random()*700+parseFloat(settings.spawnFreq.value));
+}
+
+function update(){
+  if(paused||gameOver) return;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  dino.y+=dino.dy;
+  if(dino.y+dino.height<canvas.height)dino.dy+=parseFloat(settings.gravity.value);
+  if(dino.y>=ground){dino.y=ground;dino.dy=0;dino.isJumping=false;}
+
+  for(let i=0;i<cactuses.length;i++){
+    let c=cactuses[i];
+    c.x-=parseFloat(settings.dinoSpeed.value);
+    drawCactus(c);
+    if(dino.x<c.x+c.width&&dino.x+dino.width>c.x&&dino.y<c.y+c.height&&dino.y+dino.hitHeight>c.y){
+      gameOver=true;
+      if(score>highScore){highScore=score; localStorage.setItem("highScore",highScore);}
+      alert("Game Over! Score: "+Math.floor(score));
+      document.location.reload();
+    }
+    if(c.x+c.width<0){cactuses.splice(i,1);passSound.currentTime=0;passSound.play();score++;i--;}
+  }
+
+  drawDino();
+  ctx.fillStyle="black";
+  ctx.font="20px Arial";
+  ctx.fillText("Score: "+Math.floor(score),canvas.width-150,30);
+  ctx.fillText("High Score: "+Math.floor(highScore),canvas.width-150,60);
+
+  requestAnimationFrame(update);
+}
+
+// Passive score over time
+setInterval(()=>{
+  if(!paused&&!gameOver){
+    score += parseFloat(settings.scoreRate.value)*0.5;
+    if(Math.floor(score)%10===0) milestoneSound.play();
+  }
+},500);
+
+function jump(){
+  if(!dino.isJumping){dino.dy=-parseFloat(settings.jumpPower.value); dino.isJumping=true;}
+}
+
+function togglePause(){
+  paused=!paused;
+  document.getElementById("pauseMenu").style.display=paused?"flex":"none";
+}
+function resumeGame(){togglePause();}
+function restartGame(){score=0; gameOver=false; cactuses=[]; spawnCactus(); update(); togglePause();}
+
+document.addEventListener("keydown",(e)=>{
+  if(e.code==="Space"){jump(); if(backgroundSound.paused){backgroundSound.play();}}
+  if(e.code==="KeyP"){togglePause();}
+});
+
+dinoImg.onload=()=>{update(); spawnCactus();}
+window.addEventListener("resize",()=>{canvas.height=window.innerHeight-120;});
+</script>
+
+</body>
+</html>
