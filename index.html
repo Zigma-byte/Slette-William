@@ -249,7 +249,7 @@ function updateJets() {
   for (let i = 0; i < fallingCactuses.length; i++) {
     let fc = fallingCactuses[i];
     fc.y += fc.dy;
-    fc.x += -5; // move left
+    fc.x += -3.5; // move left
     ctx.drawImage(cacImg, fc.x, fc.y, fc.width, fc.height);
 
     // Collision with player
