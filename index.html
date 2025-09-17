@@ -206,7 +206,7 @@ function spawnCactus(){
 }
 
 function spawnJet() {
-  if (paused || gameOver || score <= 55) return;
+  if (paused || gameOver || score <= 2) return;
   let jet = {
     x: -100,
     y: Math.random() * 200 + 50,
