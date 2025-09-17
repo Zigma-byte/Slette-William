@@ -211,12 +211,12 @@ function spawnJet() {
   if (paused || gameOver) return;
   let jet = {
     x: -100,
-    y: Math.random() * 80 + 20, // higher up
+    y: Math.random() * 80 + 20,
     width: 100,
     height: 60,
     speed: 4,
     dropCooldown: Math.floor(Math.random() * 60) + 30,
-    spawnTime: Date.now() // track when jet appeared
+    spawnTime: Date.now()
   };
   jets.push(jet);
   setTimeout(spawnJet, Math.random() * 5000 + 5000);
@@ -232,15 +232,15 @@ function updateJets() {
     if (Date.now() - jet.spawnTime > 800) {
       jet.dropCooldown--;
       if (jet.dropCooldown <= 0) {
-        // Random push velocity dx between -0.2 and -4
-        let dx = -0.2 - Math.random() * 3.8;
+        let dx = -0.2 - Math.random() * 3.8; // random left push
         fallingCactuses.push({
             x: jet.x + jet.width / 2 - 10,
             y: jet.y + jet.height,
             width: 20,
             height: 40,
             dy: 5,
-            dx: dx
+            dx: dx,
+            jumpTimer: null
         });
         jet.dropCooldown = Math.floor(Math.random() * 60) + 30;
       }
@@ -260,19 +260,54 @@ function updateJets() {
     fc.x += fc.dx;
     ctx.drawImage(cacImg, fc.x, fc.y, fc.width, fc.height);
 
-    // Collision
-    if (dino.x < fc.x + fc.width &&
+    // Landing on top
+    let onTop = 
+        dino.y + dino.hitHeight <= fc.y + fc.dy &&
+        dino.y + dino.hitHeight + dino.dy >= fc.y &&
+        dino.x + dino.width > fc.x &&
+        dino.x < fc.x + fc.width;
+
+    // Touching sides/bottom kills
+    let hitSidesOrBottom = 
+        !(onTop) &&
+        dino.x < fc.x + fc.width &&
         dino.x + dino.width > fc.x &&
         dino.y < fc.y + fc.height &&
-        dino.y + dino.hitHeight > fc.y) {
-            gameOver = true;
-            if(score > highScore){ highScore = score; localStorage.setItem("highScore", highScore); }
-            alert("Game Over! Score: " + Math.floor(score));
-            document.location.reload();
+        dino.y + dino.hitHeight > fc.y;
+
+    if(hitSidesOrBottom){
+        gameOver = true;
+        if(score > highScore){ highScore = score; localStorage.setItem("highScore", highScore); }
+        alert("Game Over! Score: " + Math.floor(score));
+        document.location.reload();
     }
 
-    if (fc.y > canvas.height + 50 || fc.x + fc.width < 0) {
-        fallingCactuses.splice(i, 1);
+    // Landed on top
+    if(onTop){
+        dino.y = fc.y - dino.hitHeight;
+        dino.dy = 0;
+        dino.isJumping = false;
+
+        if(!fc.jumpTimer){
+            fc.jumpTimer = setTimeout(() => {
+                gameOver = true;
+                if(score > highScore){ highScore = score; localStorage.setItem("highScore", highScore); }
+                alert("Game Over! Score: " + Math.floor(score));
+                document.location.reload();
+            }, 650);
+        }
+    }
+
+    // Cancel timer if player jumps
+    if(dino.isJumping && fc.jumpTimer){
+        clearTimeout(fc.jumpTimer);
+        fc.jumpTimer = null;
+    }
+
+    // Remove offscreen
+    if(fc.y > canvas.height + 50 || fc.x + fc.width < 0){
+        if(fc.jumpTimer) clearTimeout(fc.jumpTimer);
+        fallingCactuses.splice(i,1);
         i--;
     }
   }
@@ -303,7 +338,7 @@ function update(){
 
     drawDino();
 
-    // Unlock jets after score 55
+    // Unlock jets after score 20
     if (!jetsUnlocked && score > 20) {
       jetsUnlocked = true;
       spawnJet();
