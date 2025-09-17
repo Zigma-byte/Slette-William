@@ -235,7 +235,7 @@ function updateJets() {
         dy: 5,  // vertical speed
         dx: -2  // horizontal speed left
       });
-      jet.dropCooldown = Math.floor(Math.random() * 60) + 30;
+      jet.dropCooldown = Math.floor(Math.random() * 70) + 35;
     }
 
     if (jet.x > canvas.width + 100) {
@@ -249,7 +249,7 @@ function updateJets() {
   for (let i = 0; i < fallingCactuses.length; i++) {
     let fc = fallingCactuses[i];
     fc.y += fc.dy;
-    fc.x += -1.5; // move left
+    fc.x += -2.2; // move left
     ctx.drawImage(cacImg, fc.x, fc.y, fc.width, fc.height);
 
     // Collision with player
@@ -335,15 +335,7 @@ function resumeGame(){
   document.getElementById("pauseMenu").style.display = "none";
 }
 function restartGame(){
-  clearTimeout(cactusTimer);
-  score=0; gameOver=false; paused=false;
-  cactuses=[];
-  jets=[];
-  fallingCactuses=[];
-  jetsUnlocked=false;
-  dino.y=-10; dino.dy=0; dino.isJumping=false;
-  document.getElementById("pauseMenu").style.display="none";
-  spawnCactus();
+  document.location.reload();
 }
 
 // Controls
