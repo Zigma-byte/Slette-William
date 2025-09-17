@@ -65,7 +65,7 @@ canvas {
     <span id="spawnFreqVal"></span>
   </label>
   <label>
-    Dino Speed
+    William's Speed
     <input type="range" min="2" max="12" id="dinoSpeed">
     <span id="dinoSpeedVal"></span>
   </label>
@@ -86,7 +86,7 @@ canvas {
   </label>
   <label>
     Hard Jump Chance (%)
-    <input type="range" min="0" max="50" id="hardJump">
+    <input type="range" min="0" max="100" id="hardJump">
     <span id="hardJumpVal"></span>
   </label>
   <label>
@@ -185,8 +185,8 @@ function drawCactus(c){ctx.drawImage(cacImg,c.x,c.y,c.width,c.height);}
 
 function spawnCactus(){
   if(paused||gameOver) return;
-  let width=Math.floor(Math.random()*30)+20;
-  let height=Math.floor(Math.random()*50)+40;
+  let width=Math.floor(Math.random()*20)+20;
+  let height=Math.floor(Math.random()*40)+40;
   let gap=Math.floor(Math.random()*200)+400;
 
   if(Math.random()*100<parseFloat(settings.hardJump.value)){
