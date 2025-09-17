@@ -250,8 +250,22 @@ function updateJets() {
     let fc = fallingCactuses[i];
     fc.y += fc.dy;
     fc.x += fc.dx; // move left
+
+    // Draw the falling cactus
     ctx.drawImage(cacImg, fc.x, fc.y, fc.width, fc.height);
 
+    // Collision with player
+    if (dino.x < fc.x + fc.width &&
+        dino.x + dino.width > fc.x &&
+        dino.y < fc.y + fc.height &&
+        dino.y + dino.hitHeight > fc.y) {
+            gameOver = true;
+            if(score > highScore){ highScore = score; localStorage.setItem("highScore", highScore); }
+            alert("Game Over! Score: " + Math.floor(score));
+            document.location.reload();
+    }
+
+    // Remove offscreen
     if (fc.y > canvas.height + 50 || fc.x + fc.width < 0) {
         fallingCactuses.splice(i, 1);
         i--;
