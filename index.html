@@ -281,7 +281,7 @@ function update(){
     drawDino();
 
     // Start jet spawning when score crosses 55
-    if (!jetsUnlocked && score > 55) {
+    if (!jetsUnlocked && score > 2) {
       jetsUnlocked = true;
       spawnJet();
     }
