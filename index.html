@@ -116,8 +116,10 @@ canvas.height=window.innerHeight-120;
 
 const dinoImg=new Image();
 const cacImg=new Image();
+const jetImg=new Image();
 dinoImg.src="./lw.png";
 cacImg.src="./cac.png";
+jetImg.src="./fw.png";
 
 const passSound=new Audio("./sound.mp3");
 const milestoneSound=new Audio("./over.mp3");
@@ -174,6 +176,8 @@ let dino={
   isJumping:false
 };
 let cactuses=[];
+let jets=[];
+let fallingCactuses=[];
 let score=0;
 let highScore=localStorage.getItem("highScore")||0;
 let gameOver=false;
@@ -201,6 +205,56 @@ function spawnCactus(){
   cactusTimer=setTimeout(spawnCactus,Math.random()*700+parseFloat(settings.spawnFreq.value));
 }
 
+function spawnJet() {
+  if (paused || gameOver || score <= 55) return;
+  let jet = {
+    x: -100,
+    y: Math.random() * 200 + 50,
+    width: 100,
+    height: 60,
+    speed: 4,
+    dropCooldown: Math.floor(Math.random() * 60) + 30
+  };
+  jets.push(jet);
+  setTimeout(spawnJet, Math.random() * 5000 + 5000);
+}
+
+function updateJets() {
+  for (let i = 0; i < jets.length; i++) {
+    let jet = jets[i];
+    jet.x += jet.speed;
+
+    jet.dropCooldown--;
+    if (jet.dropCooldown <= 0) {
+      fallingCactuses.push({
+        x: jet.x + jet.width / 2 - 10,
+        y: jet.y + jet.height,
+        width: 20,
+        height: 40,
+        dy: 5
+      });
+      jet.dropCooldown = Math.floor(Math.random() * 60) + 30;
+    }
+
+    if (jet.x > canvas.width + 100) {
+      jets.splice(i, 1);
+      i--;
+    } else {
+      ctx.drawImage(jetImg, jet.x, jet.y, jet.width, jet.height);
+    }
+  }
+
+  for (let i = 0; i < fallingCactuses.length; i++) {
+    let fc = fallingCactuses[i];
+    fc.y += fc.dy;
+    ctx.drawImage(cacImg, fc.x, fc.y, fc.width, fc.height);
+    if (fc.y > canvas.height + 50) {
+      fallingCactuses.splice(i, 1);
+      i--;
+    }
+  }
+}
+
 function update(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
@@ -224,16 +278,18 @@ function update(){
     }
 
     drawDino();
+
+    if(score > 55) updateJets();
+
     ctx.fillStyle="black";
     ctx.font="20px Arial";
     ctx.fillText("Score: "+Math.floor(score),canvas.width-150,30);
     ctx.fillText("High Score: "+Math.floor(highScore),canvas.width-150,60);
   }
 
-  requestAnimationFrame(update); // always keep loop alive
+  requestAnimationFrame(update);
 }
 
-// Passive score over time
 setInterval(()=>{
   if(!paused&&!gameOver){
     score += parseFloat(settings.scoreRate.value)*0.5;
@@ -260,12 +316,13 @@ function restartGame(){
   clearTimeout(cactusTimer);
   score=0; gameOver=false; paused=false;
   cactuses=[];
+  jets=[];
+  fallingCactuses=[];
   dino.y=-10; dino.dy=0; dino.isJumping=false;
   document.getElementById("pauseMenu").style.display="none";
   spawnCactus();
 }
 
-// Controls
 document.addEventListener("keydown",(e)=>{
   if(e.code==="Space"){jump(); if(!musicPlaying) playRandomTrack();}
   if(e.code==="KeyP"){togglePause();}
@@ -276,19 +333,15 @@ canvas.addEventListener("touchstart", (e)=>{ e.preventDefault(); jump(); if(!mus
 dinoImg.onload=()=>{update(); spawnCactus();}
 window.addEventListener("resize",()=>{canvas.height=window.innerHeight-120;});
 
-// === MUSIC SYSTEM: randomly play back.mp3 or back2.mp3 ===
+// Music system
 let musicPlaying=false;
-
 function playRandomTrack(){
   musicPlaying=true;
   let pick=Math.random()<0.5 ? background1 : background2;
   background1.pause(); background2.pause();
   background1.currentTime=0; background2.currentTime=0;
   pick.play();
-  pick.onended=()=>{
-    musicPlaying=false;
-    playRandomTrack();
-  };
+  pick.onended=()=>{musicPlaying=false; playRandomTrack();}
 }
 </script>
 </body>
