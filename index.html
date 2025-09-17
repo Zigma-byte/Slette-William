@@ -184,6 +184,7 @@ let gameOver=false;
 let paused=false;
 const ground=canvas.height-80;
 let cactusTimer=null;
+let jetsUnlocked = false; // flag for jet spawning
 
 function drawDino(){ctx.drawImage(dinoImg,dino.x,dino.y,dino.width,dino.height);}
 function drawCactus(c){ctx.drawImage(cacImg,c.x,c.y,c.width,c.height);}
@@ -206,7 +207,7 @@ function spawnCactus(){
 }
 
 function spawnJet() {
-  if (paused || gameOver || score <= 2) return;
+  if (paused || gameOver) return;
   let jet = {
     x: -100,
     y: Math.random() * 200 + 50,
@@ -279,7 +280,13 @@ function update(){
 
     drawDino();
 
-    if(score > 55) updateJets();
+    // Start jet spawning when score crosses 55
+    if (!jetsUnlocked && score > 55) {
+      jetsUnlocked = true;
+      spawnJet();
+    }
+
+    if(jetsUnlocked) updateJets();
 
     ctx.fillStyle="black";
     ctx.font="20px Arial";
@@ -290,6 +297,7 @@ function update(){
   requestAnimationFrame(update);
 }
 
+// Passive score over time
 setInterval(()=>{
   if(!paused&&!gameOver){
     score += parseFloat(settings.scoreRate.value)*0.5;
@@ -318,11 +326,13 @@ function restartGame(){
   cactuses=[];
   jets=[];
   fallingCactuses=[];
+  jetsUnlocked=false;
   dino.y=-10; dino.dy=0; dino.isJumping=false;
   document.getElementById("pauseMenu").style.display="none";
   spawnCactus();
 }
 
+// Controls
 document.addEventListener("keydown",(e)=>{
   if(e.code==="Space"){jump(); if(!musicPlaying) playRandomTrack();}
   if(e.code==="KeyP"){togglePause();}
