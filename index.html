@@ -184,7 +184,7 @@ let gameOver=false;
 let paused=false;
 const ground=canvas.height-80;
 let cactusTimer=null;
-let jetsUnlocked = false; // flag for jet spawning
+let jetsUnlocked = false;
 
 function drawDino(){ctx.drawImage(dinoImg,dino.x,dino.y,dino.width,dino.height);}
 function drawCactus(c){ctx.drawImage(cacImg,c.x,c.y,c.width,c.height);}
@@ -206,36 +206,44 @@ function spawnCactus(){
   cactusTimer=setTimeout(spawnCactus,Math.random()*700+parseFloat(settings.spawnFreq.value));
 }
 
+// Spawn jets
 function spawnJet() {
   if (paused || gameOver) return;
   let jet = {
     x: -100,
-    y: Math.random() * 80 + 20, // HIGHER UP
+    y: Math.random() * 80 + 20, // higher up
     width: 100,
     height: 60,
     speed: 4,
-    dropCooldown: Math.floor(Math.random() * 60) + 30
+    dropCooldown: Math.floor(Math.random() * 60) + 30,
+    spawnTime: Date.now() // track when jet appeared
   };
   jets.push(jet);
   setTimeout(spawnJet, Math.random() * 5000 + 5000);
 }
 
+// Update jets and falling cactuses
 function updateJets() {
   for (let i = 0; i < jets.length; i++) {
     let jet = jets[i];
     jet.x += jet.speed;
 
-    jet.dropCooldown--;
-    if (jet.dropCooldown <= 0) {
-      fallingCactuses.push({
-        x: jet.x + jet.width / 2 - 10,
-        y: jet.y + jet.height,
-        width: 20,
-        height: 40,
-        dy: 5,  // vertical speed
-        dx: -2  // horizontal speed left
-      });
-      jet.dropCooldown = Math.floor(Math.random() * 70) + 35;
+    // Only allow drops after 0.8 seconds
+    if (Date.now() - jet.spawnTime > 800) {
+      jet.dropCooldown--;
+      if (jet.dropCooldown <= 0) {
+        // Random push velocity dx between -0.2 and -4
+        let dx = -0.2 - Math.random() * 3.8;
+        fallingCactuses.push({
+            x: jet.x + jet.width / 2 - 10,
+            y: jet.y + jet.height,
+            width: 20,
+            height: 40,
+            dy: 5,
+            dx: dx
+        });
+        jet.dropCooldown = Math.floor(Math.random() * 60) + 30;
+      }
     }
 
     if (jet.x > canvas.width + 100) {
@@ -249,10 +257,10 @@ function updateJets() {
   for (let i = 0; i < fallingCactuses.length; i++) {
     let fc = fallingCactuses[i];
     fc.y += fc.dy;
-    fc.x += -2.2; // move left
+    fc.x += fc.dx;
     ctx.drawImage(cacImg, fc.x, fc.y, fc.width, fc.height);
 
-    // Collision with player
+    // Collision
     if (dino.x < fc.x + fc.width &&
         dino.x + dino.width > fc.x &&
         dino.y < fc.y + fc.height &&
@@ -270,6 +278,7 @@ function updateJets() {
   }
 }
 
+// Game loop
 function update(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
@@ -294,8 +303,8 @@ function update(){
 
     drawDino();
 
-    // Start jet spawning when score crosses 55
-    if (!jetsUnlocked && score > 15) {
+    // Unlock jets after score 55
+    if (!jetsUnlocked && score > 55) {
       jetsUnlocked = true;
       spawnJet();
     }
@@ -311,7 +320,7 @@ function update(){
   requestAnimationFrame(update);
 }
 
-// Passive score over time
+// Passive score
 setInterval(()=>{
   if(!paused&&!gameOver){
     score += parseFloat(settings.scoreRate.value)*0.5;
@@ -335,7 +344,15 @@ function resumeGame(){
   document.getElementById("pauseMenu").style.display = "none";
 }
 function restartGame(){
-  document.location.reload();
+  clearTimeout(cactusTimer);
+  score=0; gameOver=false; paused=false;
+  cactuses=[];
+  jets=[];
+  fallingCactuses=[];
+  jetsUnlocked=false;
+  dino.y=-10; dino.dy=0; dino.isJumping=false;
+  document.getElementById("pauseMenu").style.display="none";
+  spawnCactus();
 }
 
 // Controls
@@ -349,7 +366,7 @@ canvas.addEventListener("touchstart", (e)=>{ e.preventDefault(); jump(); if(!mus
 dinoImg.onload=()=>{update(); spawnCactus();}
 window.addEventListener("resize",()=>{canvas.height=window.innerHeight-120;});
 
-// Music system
+// Music
 let musicPlaying=false;
 function playRandomTrack(){
   musicPlaying=true;
