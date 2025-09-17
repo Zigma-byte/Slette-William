@@ -232,7 +232,8 @@ function updateJets() {
         y: jet.y + jet.height,
         width: 20,
         height: 40,
-        dy: 5
+        dy: 5,  // vertical speed
+        dx: -2  // horizontal speed left
       });
       jet.dropCooldown = Math.floor(Math.random() * 60) + 30;
     }
@@ -248,10 +249,12 @@ function updateJets() {
   for (let i = 0; i < fallingCactuses.length; i++) {
     let fc = fallingCactuses[i];
     fc.y += fc.dy;
+    fc.x += fc.dx; // move left
     ctx.drawImage(cacImg, fc.x, fc.y, fc.width, fc.height);
-    if (fc.y > canvas.height + 50) {
-      fallingCactuses.splice(i, 1);
-      i--;
+
+    if (fc.y > canvas.height + 50 || fc.x + fc.width < 0) {
+        fallingCactuses.splice(i, 1);
+        i--;
     }
   }
 }
@@ -281,7 +284,7 @@ function update(){
     drawDino();
 
     // Start jet spawning when score crosses 55
-    if (!jetsUnlocked && score > 2) {
+    if (!jetsUnlocked && score > 25) {
       jetsUnlocked = true;
       spawnJet();
     }
