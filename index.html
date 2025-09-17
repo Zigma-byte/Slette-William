@@ -107,9 +107,6 @@ canvas {
   </div>
 </div>
 
-<!-- Hidden div for YouTube player -->
-<div id="yt-player"></div>
-
 <script>
 const canvas=document.getElementById("gameCanvas");
 const ctx=canvas.getContext("2d");
@@ -123,8 +120,10 @@ cacImg.src="./cac.png";
 
 const passSound=new Audio("./sound.mp3");
 const milestoneSound=new Audio("./over.mp3");
-const backgroundSound=new Audio("./back.mp3");
-backgroundSound.volume=0.4;
+const background1=new Audio("./back.mp3");
+const background2=new Audio("./back2.mp3");
+background1.volume=0.4;
+background2.volume=0.4;
 
 // Settings
 const settings = {
@@ -276,45 +275,20 @@ canvas.addEventListener("touchstart", (e)=>{ e.preventDefault(); jump(); if(!mus
 dinoImg.onload=()=>{update(); spawnCactus();}
 window.addEventListener("resize",()=>{canvas.height=window.innerHeight-120;});
 
-// === MUSIC SYSTEM: random between YouTube + back.mp3 ===
-let ytPlayer;
+// === MUSIC SYSTEM: randomly play back.mp3 or back2.mp3 ===
 let musicPlaying=false;
 
 function playRandomTrack(){
   musicPlaying=true;
-  if(Math.random()<0.5){
-    backgroundSound.currentTime=0;
-    backgroundSound.play();
-  }else{
-    if(ytPlayer) ytPlayer.playVideo();
-  }
-}
-
-function onPlayerStateChange(event){
-  if(event.data===YT.PlayerState.ENDED){
+  let pick=Math.random()<0.5 ? background1 : background2;
+  background1.pause(); background2.pause();
+  background1.currentTime=0; background2.currentTime=0;
+  pick.play();
+  pick.onended=()=>{
     musicPlaying=false;
     playRandomTrack();
-  }
-  if(event.data===YT.PlayerState.PAUSED){
-    musicPlaying=false;
-  }
-}
-
-backgroundSound.addEventListener('ended', ()=>{
-  musicPlaying=false;
-  playRandomTrack();
-});
-
-function onYouTubeIframeAPIReady(){
-  ytPlayer=new YT.Player('yt-player',{
-    height:'0', width:'0',
-    videoId:'_mQzkEwcTQs', // replace with your desired track
-    playerVars:{autoplay:0,controls:0,modestbranding:1,rel:0},
-    events:{onStateChange:onPlayerStateChange}
-  });
+  };
 }
 </script>
-<script src="https://www.youtube.com/iframe_api"></script>
-
 </body>
 </html>
