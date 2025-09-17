@@ -107,6 +107,9 @@ canvas {
   </div>
 </div>
 
+<!-- Hidden div for YouTube player -->
+<div id="yt-player"></div>
+
 <script>
 const canvas=document.getElementById("gameCanvas");
 const ctx=canvas.getContext("2d");
@@ -121,7 +124,6 @@ cacImg.src="./cac.png";
 const passSound=new Audio("./sound.mp3");
 const milestoneSound=new Audio("./over.mp3");
 const backgroundSound=new Audio("./back.mp3");
-backgroundSound.loop=true;
 backgroundSound.volume=0.4;
 
 // Settings
@@ -191,7 +193,6 @@ function spawnCactus(){
   if(Math.random()*100<parseFloat(settings.hardJump.value)){
     gap=Math.floor(Math.random()*200)+400;
     let first={x:canvas.width+gap,y:ground+(60-height),width:width,height:height};
-    // smaller hard jump gap
     let second={x:first.x+first.width+Math.floor(Math.random()*10)+10,y:ground+(60-height),width:width,height:height};
     cactuses.push(first,second);
   }else{
@@ -252,46 +253,71 @@ function resumeGame(){
 }
 
 function restartGame(){
-  // Reset game state
   score = 0;
   gameOver = false;
   paused = false;
   cactuses = [];
-
-  // Reset dino
   dino.y = -10;
   dino.dy = 0;
   dino.isJumping = false;
-
-  // Hide pause menu if shown
   document.getElementById("pauseMenu").style.display = "none";
-
-  // Start spawning cactuses again
   spawnCactus();
-
-  // Only call update once if not already running
-  // (update loop is recursive via requestAnimationFrame)
 }
 
-
+// KEY + TAP events
 document.addEventListener("keydown",(e)=>{
-  if(e.code==="Space"){jump(); if(backgroundSound.paused){backgroundSound.play();}}
+  if(e.code==="Space"){jump(); if(backgroundSound.paused && !ytPlayer) backgroundSound.play();}
   if(e.code==="KeyP"){togglePause();}
 });
-// Make dino jump on click/tap
 canvas.addEventListener("click", () => {
   jump();
-  if (backgroundSound.paused) backgroundSound.play();
+  if (backgroundSound.paused && !ytPlayer) backgroundSound.play();
 });
 canvas.addEventListener("touchstart", (e) => {
-  e.preventDefault(); // prevent scrolling
+  e.preventDefault();
   jump();
-  if (backgroundSound.paused) backgroundSound.play();
+  if (backgroundSound.paused && !ytPlayer) backgroundSound.play();
 }, {passive: false});
 
 dinoImg.onload=()=>{update(); spawnCactus();}
 window.addEventListener("resize",()=>{canvas.height=window.innerHeight-120;});
+
+// === YOUTUBE MUSIC SYSTEM (50/50 loop) ===
+let ytPlayer;
+
+// Randomly choose what to play next
+function playRandomTrack() {
+  if (Math.random() < 0.5) {
+    // Play back.mp3
+    backgroundSound.currentTime = 0;
+    backgroundSound.play();
+  } else {
+    // Play YouTube
+    if (ytPlayer) ytPlayer.playVideo();
+  }
+}
+
+// When YouTube ends → pick again
+function onPlayerStateChange(event) {
+  if (event.data === YT.PlayerState.ENDED) {
+    playRandomTrack();
+  }
+}
+
+// When back.mp3 ends → pick again
+backgroundSound.addEventListener('ended', playRandomTrack);
+
+function onYouTubeIframeAPIReady() {
+  ytPlayer = new YT.Player('yt-player', {
+    height: '0',
+    width: '0',
+    videoId: 'JSm9egKPsBo',
+    playerVars: { autoplay: 0, controls: 0, modestbranding: 1, rel: 0 },
+    events: { onStateChange: onPlayerStateChange }
+  });
+}
 </script>
+<script src="https://www.youtube.com/iframe_api"></script>
 
 </body>
 </html>
