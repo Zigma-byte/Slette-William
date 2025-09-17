@@ -210,7 +210,7 @@ function spawnJet() {
   if (paused || gameOver) return;
   let jet = {
     x: -100,
-    y: Math.random() * 200 + 50,
+    y: Math.random() * 80 + 20, // HIGHER UP
     width: 100,
     height: 60,
     speed: 4,
@@ -229,7 +229,7 @@ function updateJets() {
     if (jet.dropCooldown <= 0) {
       fallingCactuses.push({
         x: jet.x + jet.width / 2 - 10,
-        y: Math.random() * 80 + 20,
+        y: jet.y + jet.height,
         width: 20,
         height: 40,
         dy: 5,  // vertical speed
@@ -250,8 +250,6 @@ function updateJets() {
     let fc = fallingCactuses[i];
     fc.y += fc.dy;
     fc.x += fc.dx; // move left
-
-    // Draw the falling cactus
     ctx.drawImage(cacImg, fc.x, fc.y, fc.width, fc.height);
 
     // Collision with player
@@ -265,7 +263,6 @@ function updateJets() {
             document.location.reload();
     }
 
-    // Remove offscreen
     if (fc.y > canvas.height + 50 || fc.x + fc.width < 0) {
         fallingCactuses.splice(i, 1);
         i--;
@@ -297,8 +294,8 @@ function update(){
 
     drawDino();
 
-    // Start jet spawning when score crosses 15
-    if (!jetsUnlocked && score > 15) {
+    // Start jet spawning when score crosses 55
+    if (!jetsUnlocked && score > 55) {
       jetsUnlocked = true;
       spawnJet();
     }
