@@ -171,8 +171,6 @@ let dino={
   height:70,
   hitHeight:parseFloat(settings.hitHeight.value),
   dy:0,
-  gravity:parseFloat(settings.gravity.value),
-  jumpPower:-parseFloat(settings.jumpPower.value),
   isJumping:false
 };
 let cactuses=[];
@@ -181,6 +179,7 @@ let highScore=localStorage.getItem("highScore")||0;
 let gameOver=false;
 let paused=false;
 const ground=canvas.height-80;
+let cactusTimer=null;
 
 function drawDino(){ctx.drawImage(dinoImg,dino.x,dino.y,dino.width,dino.height);}
 function drawCactus(c){ctx.drawImage(cacImg,c.x,c.y,c.width,c.height);}
@@ -189,46 +188,49 @@ function spawnCactus(){
   if(paused||gameOver) return;
   let width=Math.floor(Math.random()*30)+20;
   let height=Math.floor(Math.random()*50)+40;
-  let gap;
+  let gap=Math.floor(Math.random()*200)+400;
+
   if(Math.random()*100<parseFloat(settings.hardJump.value)){
-    gap=Math.floor(Math.random()*200)+400;
     let first={x:canvas.width+gap,y:ground+(60-height),width:width,height:height};
     let second={x:first.x+first.width+Math.floor(Math.random()*10)+10,y:ground+(60-height),width:width,height:height};
     cactuses.push(first,second);
   }else{
-    gap=Math.floor(Math.random()*200)+400;
     cactuses.push({x:canvas.width+gap,y:ground+(60-height),width:width,height:height});
   }
-  setTimeout(spawnCactus,Math.random()*700+parseFloat(settings.spawnFreq.value));
+
+  cactusTimer=setTimeout(spawnCactus,Math.random()*700+parseFloat(settings.spawnFreq.value));
 }
 
 function update(){
-  if(paused||gameOver) return;
   ctx.clearRect(0,0,canvas.width,canvas.height);
-  dino.y+=dino.dy;
-  if(dino.y+dino.height<canvas.height)dino.dy+=parseFloat(settings.gravity.value);
-  if(dino.y>=ground){dino.y=ground;dino.dy=0;dino.isJumping=false;}
 
-  for(let i=0;i<cactuses.length;i++){
-    let c=cactuses[i];
-    c.x-=parseFloat(settings.dinoSpeed.value);
-    drawCactus(c);
-    if(dino.x<c.x+c.width&&dino.x+dino.width>c.x&&dino.y<c.y+c.height&&dino.y+dino.hitHeight>c.y){
-      gameOver=true;
-      if(score>highScore){highScore=score; localStorage.setItem("highScore",highScore);}
-      alert("Game Over! Score: "+Math.floor(score));
-      document.location.reload();
+  if(!paused && !gameOver){
+    dino.y+=dino.dy;
+    if(dino.y+dino.height<canvas.height) dino.dy+=parseFloat(settings.gravity.value);
+    if(dino.y>=ground){ dino.y=ground; dino.dy=0; dino.isJumping=false; }
+
+    for(let i=0;i<cactuses.length;i++){
+      let c=cactuses[i];
+      c.x-=parseFloat(settings.dinoSpeed.value);
+      drawCactus(c);
+
+      if(dino.x<c.x+c.width&&dino.x+dino.width>c.x&&dino.y<c.y+c.height&&dino.y+dino.hitHeight>c.y){
+        gameOver=true;
+        if(score>highScore){highScore=score; localStorage.setItem("highScore",highScore);}
+        alert("Game Over! Score: "+Math.floor(score));
+        document.location.reload();
+      }
+      if(c.x+c.width<0){cactuses.splice(i,1);passSound.currentTime=0;passSound.play();score++;i--;}
     }
-    if(c.x+c.width<0){cactuses.splice(i,1);passSound.currentTime=0;passSound.play();score++;i--;}
+
+    drawDino();
+    ctx.fillStyle="black";
+    ctx.font="20px Arial";
+    ctx.fillText("Score: "+Math.floor(score),canvas.width-150,30);
+    ctx.fillText("High Score: "+Math.floor(highScore),canvas.width-150,60);
   }
 
-  drawDino();
-  ctx.fillStyle="black";
-  ctx.font="20px Arial";
-  ctx.fillText("Score: "+Math.floor(score),canvas.width-150,30);
-  ctx.fillText("High Score: "+Math.floor(highScore),canvas.width-150,60);
-
-  requestAnimationFrame(update);
+  requestAnimationFrame(update); // always keep loop alive
 }
 
 // Passive score over time
@@ -240,7 +242,10 @@ setInterval(()=>{
 },500);
 
 function jump(){
-  if(!dino.isJumping){dino.dy=-parseFloat(settings.jumpPower.value); dino.isJumping=true;}
+  if(!dino.isJumping){
+    dino.dy=-parseFloat(settings.jumpPower.value);
+    dino.isJumping=true;
+  }
 }
 
 function togglePause(){
@@ -251,69 +256,61 @@ function resumeGame(){
   paused = false;
   document.getElementById("pauseMenu").style.display = "none";
 }
-
 function restartGame(){
-  score = 0;
-  gameOver = false;
-  paused = false;
-  cactuses = [];
-  dino.y = -10;
-  dino.dy = 0;
-  dino.isJumping = false;
-  document.getElementById("pauseMenu").style.display = "none";
+  clearTimeout(cactusTimer);
+  score=0; gameOver=false; paused=false;
+  cactuses=[];
+  dino.y=-10; dino.dy=0; dino.isJumping=false;
+  document.getElementById("pauseMenu").style.display="none";
   spawnCactus();
 }
 
-// KEY + TAP events
+// Controls
 document.addEventListener("keydown",(e)=>{
-  if(e.code==="Space"){jump(); if(backgroundSound.paused && !ytPlayer) backgroundSound.play();}
+  if(e.code==="Space"){jump(); if(!musicPlaying) playRandomTrack();}
   if(e.code==="KeyP"){togglePause();}
 });
-canvas.addEventListener("click", () => {
-  jump();
-  if (backgroundSound.paused && !ytPlayer) backgroundSound.play();
-});
-canvas.addEventListener("touchstart", (e) => {
-  e.preventDefault();
-  jump();
-  if (backgroundSound.paused && !ytPlayer) backgroundSound.play();
-}, {passive: false});
+canvas.addEventListener("click", ()=>{ jump(); if(!musicPlaying) playRandomTrack(); });
+canvas.addEventListener("touchstart", (e)=>{ e.preventDefault(); jump(); if(!musicPlaying) playRandomTrack(); }, {passive:false});
 
 dinoImg.onload=()=>{update(); spawnCactus();}
 window.addEventListener("resize",()=>{canvas.height=window.innerHeight-120;});
 
-// === YOUTUBE MUSIC SYSTEM (50/50 loop) ===
+// === MUSIC SYSTEM: random between YouTube + back.mp3 ===
 let ytPlayer;
+let musicPlaying=false;
 
-// Randomly choose what to play next
-function playRandomTrack() {
-  if (Math.random() < 0.5) {
-    // Play back.mp3
-    backgroundSound.currentTime = 0;
+function playRandomTrack(){
+  musicPlaying=true;
+  if(Math.random()<0.5){
+    backgroundSound.currentTime=0;
     backgroundSound.play();
-  } else {
-    // Play YouTube
-    if (ytPlayer) ytPlayer.playVideo();
+  }else{
+    if(ytPlayer) ytPlayer.playVideo();
   }
 }
 
-// When YouTube ends → pick again
-function onPlayerStateChange(event) {
-  if (event.data === YT.PlayerState.ENDED) {
+function onPlayerStateChange(event){
+  if(event.data===YT.PlayerState.ENDED){
+    musicPlaying=false;
     playRandomTrack();
   }
+  if(event.data===YT.PlayerState.PAUSED){
+    musicPlaying=false;
+  }
 }
 
-// When back.mp3 ends → pick again
-backgroundSound.addEventListener('ended', playRandomTrack);
+backgroundSound.addEventListener('ended', ()=>{
+  musicPlaying=false;
+  playRandomTrack();
+});
 
-function onYouTubeIframeAPIReady() {
-  ytPlayer = new YT.Player('yt-player', {
-    height: '0',
-    width: '0',
-    videoId: 'JSm9egKPsBo',
-    playerVars: { autoplay: 0, controls: 0, modestbranding: 1, rel: 0 },
-    events: { onStateChange: onPlayerStateChange }
+function onYouTubeIframeAPIReady(){
+  ytPlayer=new YT.Player('yt-player',{
+    height:'0', width:'0',
+    videoId:'JSm9egKPsBo', // replace with your desired track
+    playerVars:{autoplay:0,controls:0,modestbranding:1,rel:0},
+    events:{onStateChange:onPlayerStateChange}
   });
 }
 </script>
