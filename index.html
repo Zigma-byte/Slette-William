@@ -478,6 +478,8 @@ function triggerSecretEnding(){
     william.style.filter="drop-shadow(0 0 20px yellow)";
     william.style.animation="floatUp 5s ease-out forwards";
     setTimeout(()=>{
+      background1.pause();
+      background2.pause();
       background3.play();
       let msg=document.createElement("div");
       msg.innerHTML="WILLIAM DEFEATED THE JET<br><span style='font-size:20px'>YOU FOUND THE SECRET ENDING</span>";
@@ -488,5 +490,7 @@ function triggerSecretEnding(){
       overlay.appendChild(msg);
     },2000);
   },3000);
-
-  background1.pause();
+}
+</script>
+</body>
+</html>
