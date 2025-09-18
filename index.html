@@ -92,7 +92,7 @@ canvas {
   </label>
   <label>
     Character Hitbox Height
-    <input type="range" min="20" max="100" id="hitHeight">
+    <input type="range" min="1" max="100" id="hitHeight">
     <span id="hitHeightVal"></span>
   </label>
   <button id="resetSettings">Reset Settings</button>
@@ -229,7 +229,7 @@ function updateJets() {
     jet.x += jet.speed;
 
     // Only allow drops after 0.8 seconds
-    if (Date.now() - jet.spawnTime > 400) {
+    if (Date.now() - jet.spawnTime > 300) {
       jet.dropCooldown--;
       if (jet.dropCooldown <= 0) {
         let dx = -0.2 - Math.random() * 5; // random left push
@@ -242,7 +242,7 @@ function updateJets() {
             dx: dx,
             jumpTimer: null
         });
-        jet.dropCooldown = Math.floor(Math.random() * 60) + 30;
+        jet.dropCooldown = Math.floor(Math.random() * 50) + 15;
       }
     }
 
