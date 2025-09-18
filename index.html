@@ -179,12 +179,22 @@ let cactuses=[];
 let jets=[];
 let fallingCactuses=[];
 let score=0;
+let normalScore=0;
+let moddedScore=0;
 let highScore=localStorage.getItem("highScore")||0;
 let gameOver=false;
 let paused=false;
 const ground=canvas.height-80;
 let cactusTimer=null;
 let jetsUnlocked = false;
+
+// Check if settings are default
+function isDefaultSettings(){
+  for(let key in defaults){
+    if(parseFloat(settings[key].value)!==defaults[key]) return false;
+  }
+  return true;
+}
 
 function drawDino(){ctx.drawImage(dinoImg,dino.x,dino.y,dino.width,dino.height);}
 function drawCactus(c){ctx.drawImage(cacImg,c.x,c.y,c.width,c.height);}
@@ -228,11 +238,10 @@ function updateJets() {
     let jet = jets[i];
     jet.x += jet.speed;
 
-    // Only allow drops after 0.8 seconds
     if (Date.now() - jet.spawnTime > 300) {
       jet.dropCooldown--;
       if (jet.dropCooldown <= 0) {
-        let dx = -0.2 - Math.random() * 5; // random left push
+        let dx = -0.2 - Math.random() * 5;
         fallingCactuses.push({
             x: jet.x + jet.width / 2 - 10,
             y: jet.y + jet.height,
@@ -260,14 +269,12 @@ function updateJets() {
     fc.x += fc.dx;
     ctx.drawImage(cacImg, fc.x, fc.y, fc.width, fc.height);
 
-    // Landing on top
     let onTop = 
         dino.y + dino.hitHeight <= fc.y + fc.dy &&
         dino.y + dino.hitHeight + dino.dy >= fc.y &&
         dino.x + dino.width > fc.x &&
         dino.x < fc.x + fc.width;
 
-    // Touching sides/bottom kills
     let hitSidesOrBottom = 
         !(onTop) &&
         dino.x < fc.x + fc.width &&
@@ -282,7 +289,6 @@ function updateJets() {
         document.location.reload();
     }
 
-    // Landed on top
     if(onTop){
         dino.y = fc.y - dino.hitHeight;
         dino.dy = 0;
@@ -298,13 +304,11 @@ function updateJets() {
         }
     }
 
-    // Cancel timer if player jumps
     if(dino.isJumping && fc.jumpTimer){
         clearTimeout(fc.jumpTimer);
         fc.jumpTimer = null;
     }
 
-    // Remove offscreen
     if(fc.y > canvas.height + 50 || fc.x + fc.width < 0){
         if(fc.jumpTimer) clearTimeout(fc.jumpTimer);
         fallingCactuses.splice(i,1);
@@ -333,12 +337,13 @@ function update(){
         alert("Game Over! Score: "+Math.floor(score));
         document.location.reload();
       }
-      if(c.x+c.width<0){cactuses.splice(i,1);passSound.currentTime=0;passSound.play();score++;i--;}
+      if(c.x+c.width<0){cactuses.splice(i,1);passSound.currentTime=0;passSound.play();score++;
+        if(isDefaultSettings()) normalScore++; else moddedScore++;
+        i--;}
     }
 
     drawDino();
 
-    // Unlock jets after score 20
     if (!jetsUnlocked && score > 20) {
       jetsUnlocked = true;
       spawnJet();
@@ -348,8 +353,15 @@ function update(){
 
     ctx.fillStyle="black";
     ctx.font="20px Arial";
-    ctx.fillText("Score: "+Math.floor(score),canvas.width-150,30);
-    ctx.fillText("High Score: "+Math.floor(highScore),canvas.width-150,60);
+    ctx.fillText("Score: "+Math.floor(score),canvas.width-250,30);
+    ctx.fillText("Normal: "+Math.floor(normalScore),canvas.width-250,55);
+    ctx.fillText("Modded: "+Math.floor(moddedScore),canvas.width-250,80);
+    ctx.fillText("High Score: "+Math.floor(highScore),canvas.width-250,110);
+
+    // Secret ending trigger
+    if(score >= 1000){
+      triggerSecretEnding();
+    }
   }
 
   requestAnimationFrame(update);
@@ -359,6 +371,8 @@ function update(){
 setInterval(()=>{
   if(!paused&&!gameOver){
     score += parseFloat(settings.scoreRate.value)*0.5;
+    if(isDefaultSettings()) normalScore += parseFloat(settings.scoreRate.value)*0.5;
+    else moddedScore += parseFloat(settings.scoreRate.value)*0.5;
     if(Math.floor(score)%10===0) milestoneSound.play();
   }
 },500);
@@ -380,7 +394,7 @@ function resumeGame(){
 }
 function restartGame(){
   clearTimeout(cactusTimer);
-  score=0; gameOver=false; paused=false;
+  score=0; normalScore=0; moddedScore=0; gameOver=false; paused=false;
   cactuses=[];
   jets=[];
   fallingCactuses=[];
@@ -410,6 +424,71 @@ function playRandomTrack(){
   background1.currentTime=0; background2.currentTime=0;
   pick.play();
   pick.onended=()=>{musicPlaying=false; playRandomTrack();}
+}
+
+// Secret ending trigger with animation
+function triggerSecretEnding(){
+  gameOver = true;
+  paused = true;
+
+  clearTimeout(cactusTimer);
+  jets = [];
+  cactuses = [];
+  fallingCactuses = [];
+
+  let overlay = document.createElement("div");
+  overlay.style.position = "fixed";
+  overlay.style.top = "0";
+  overlay.style.left = "0";
+  overlay.style.width = "100%";
+  overlay.style.height = "100%";
+  overlay.style.background = "rgba(0,0,0,0.8)";
+  overlay.style.display = "flex";
+  overlay.style.justifyContent = "center";
+  overlay.style.alignItems = "center";
+  overlay.style.flexDirection = "column";
+  overlay.style.zIndex = "9999";
+  overlay.style.color = "white";
+  document.body.appendChild(overlay);
+
+  let dinoAnim = document.createElement("img");
+  dinoAnim.src = dinoImg.src;
+  dinoAnim.style.width = "120px";
+  dinoAnim.style.height = "140px";
+  dinoAnim.style.position = "relative";
+  dinoAnim.style.filter = "drop-shadow(0 0 20px yellow)";
+  dinoAnim.style.animation = "floatUp 6s ease-out forwards";
+  overlay.appendChild(dinoAnim);
+
+  setTimeout(()=>{
+    let msg = document.createElement("div");
+    msg.innerHTML = "YOU FOUND THE SECRET ENDING<br><span style='font-size:20px'>Thanks for playing.</span>";
+    msg.style.fontSize = "40px";
+    msg.style.marginTop = "30px";
+    msg.style.opacity = "0";
+    msg.style.animation = "fadeIn 3s forwards";
+    overlay.appendChild(msg);
+  }, 2500);
+
+  let style = document.createElement("style");
+  style.innerHTML = `
+    @keyframes floatUp {
+      0% { transform: translateY(0); opacity: 1; }
+      100% { transform: translateY(-300px); opacity: 1; }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+  `;
+  document.head.appendChild(style);
+
+  background1.pause();
+  background2.pause();
+
+  let secretSound = new Audio("./end.mp3");
+  secretSound.volume = 0.6;
+  secretSound.play();
 }
 </script>
 </body>
