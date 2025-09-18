@@ -188,9 +188,11 @@ const ground=canvas.height-80;
 let cactusTimer=null;
 let jetsUnlocked = false;
 
-function isDefaultSettings(){
-  for(let key in defaults){
-    if(parseFloat(settings[key].value)!==defaults[key]) return false;
+function isDefaultSettings() {
+  for (let key in defaults) {
+    let current = parseFloat(settings[key].value);
+    let def = defaults[key];
+    if (Math.abs(current - def) > 0.0001) return false; // allow tiny differences
   }
   return true;
 }
