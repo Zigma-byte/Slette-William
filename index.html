@@ -148,7 +148,7 @@ const displayValues = {
   hitHeightVal: document.getElementById("hitHeightVal")
 };
 
-const defaults={spawnFreq:1000,dinoSpeed:6,jumpPower:12,gravity:0.6,scoreRate:0.2,hardJump:12.5,hitHeight:30};
+const defaults={spawnFreq:1000,dinoSpeed:6,jumpPower:12,gravity:0.6,scoreRate:0.2,hardJump:12.5,hitHeight:20};
 for(let key in settings){
   settings[key].value=localStorage.getItem(key)||defaults[key];
   displayValues[key+"Val"].textContent=settings[key].value;
