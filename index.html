@@ -229,10 +229,10 @@ function updateJets() {
     jet.x += jet.speed;
 
     // Only allow drops after 0.8 seconds
-    if (Date.now() - jet.spawnTime > 800) {
+    if (Date.now() - jet.spawnTime > 400) {
       jet.dropCooldown--;
       if (jet.dropCooldown <= 0) {
-        let dx = -0.2 - Math.random() * 3.8; // random left push
+        let dx = -0.2 - Math.random() * 5; // random left push
         fallingCactuses.push({
             x: jet.x + jet.width / 2 - 10,
             y: jet.y + jet.height,
