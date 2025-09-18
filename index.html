@@ -125,6 +125,7 @@ const passSound=new Audio("./sound.mp3");
 const milestoneSound=new Audio("./over.mp3");
 const background1=new Audio("./back.mp3");
 const background2=new Audio("./back2.mp3");
+const background3=new Audio("./end.mp3");
 background1.volume=0.4;
 background2.volume=0.4;
 
@@ -158,7 +159,6 @@ for(let key in settings){
   });
 }
 
-// Reset settings button
 document.getElementById("resetSettings").addEventListener("click",()=>{
   for(let key in defaults){
     localStorage.setItem(key, defaults[key]);
@@ -188,7 +188,6 @@ const ground=canvas.height-80;
 let cactusTimer=null;
 let jetsUnlocked = false;
 
-// Check if settings are default
 function isDefaultSettings(){
   for(let key in defaults){
     if(parseFloat(settings[key].value)!==defaults[key]) return false;
@@ -216,10 +215,10 @@ function spawnCactus(){
   cactusTimer=setTimeout(spawnCactus,Math.random()*700+parseFloat(settings.spawnFreq.value));
 }
 
-// Spawn jets
+// Jet spawning
 function spawnJet() {
   if (paused || gameOver) return;
-  let jet = {
+  jets.push({
     x: -100,
     y: Math.random() * 80 + 20,
     width: 100,
@@ -227,12 +226,11 @@ function spawnJet() {
     speed: 4,
     dropCooldown: Math.floor(Math.random() * 60) + 30,
     spawnTime: Date.now()
-  };
-  jets.push(jet);
+  });
   setTimeout(spawnJet, Math.random() * 5000 + 5000);
 }
 
-// Update jets and falling cactuses
+// Jet + falling cactuses update
 function updateJets() {
   for (let i = 0; i < jets.length; i++) {
     let jet = jets[i];
@@ -263,20 +261,20 @@ function updateJets() {
     }
   }
 
+  // falling cactuses
   for (let i = 0; i < fallingCactuses.length; i++) {
     let fc = fallingCactuses[i];
     fc.y += fc.dy;
     fc.x += fc.dx;
     ctx.drawImage(cacImg, fc.x, fc.y, fc.width, fc.height);
 
-    let onTop = 
-        dino.y + dino.hitHeight <= fc.y + fc.dy &&
+    // collisions...
+    let onTop = dino.y + dino.hitHeight <= fc.y + fc.dy &&
         dino.y + dino.hitHeight + dino.dy >= fc.y &&
         dino.x + dino.width > fc.x &&
         dino.x < fc.x + fc.width;
 
-    let hitSidesOrBottom = 
-        !(onTop) &&
+    let hitSidesOrBottom = !(onTop) &&
         dino.x < fc.x + fc.width &&
         dino.x + dino.width > fc.x &&
         dino.y < fc.y + fc.height &&
@@ -358,8 +356,7 @@ function update(){
     ctx.fillText("Modded: "+Math.floor(moddedScore),canvas.width-250,80);
     ctx.fillText("High Score: "+Math.floor(highScore),canvas.width-250,110);
 
-    // Secret ending trigger
-    if(score >= 1000){
+    if(score >= 500){
       triggerSecretEnding();
     }
   }
@@ -388,17 +385,11 @@ function togglePause(){
   paused=!paused;
   document.getElementById("pauseMenu").style.display=paused?"flex":"none";
 }
-function resumeGame(){
-  paused = false;
-  document.getElementById("pauseMenu").style.display = "none";
-}
+function resumeGame(){ paused=false; document.getElementById("pauseMenu").style.display="none"; }
 function restartGame(){
   clearTimeout(cactusTimer);
   score=0; normalScore=0; moddedScore=0; gameOver=false; paused=false;
-  cactuses=[];
-  jets=[];
-  fallingCactuses=[];
-  jetsUnlocked=false;
+  cactuses=[]; jets=[]; fallingCactuses=[]; jetsUnlocked=false;
   dino.y=-10; dino.dy=0; dino.isJumping=false;
   document.getElementById("pauseMenu").style.display="none";
   spawnCactus();
@@ -426,55 +417,54 @@ function playRandomTrack(){
   pick.onended=()=>{musicPlaying=false; playRandomTrack();}
 }
 
-// Secret ending trigger with animation
+// SECRET ENDING
 function triggerSecretEnding(){
   gameOver = true;
   paused = true;
-
   clearTimeout(cactusTimer);
-  jets = [];
-  cactuses = [];
-  fallingCactuses = [];
 
-  let overlay = document.createElement("div");
-  overlay.style.position = "fixed";
-  overlay.style.top = "0";
-  overlay.style.left = "0";
-  overlay.style.width = "100%";
-  overlay.style.height = "100%";
-  overlay.style.background = "rgba(0,0,0,0.8)";
-  overlay.style.display = "flex";
-  overlay.style.justifyContent = "center";
-  overlay.style.alignItems = "center";
-  overlay.style.flexDirection = "column";
-  overlay.style.zIndex = "9999";
-  overlay.style.color = "white";
+  let overlay=document.createElement("div");
+  overlay.style.position="fixed";
+  overlay.style.top="0";
+  overlay.style.left="0";
+  overlay.style.width="100%";
+  overlay.style.height="100%";
+  overlay.style.background="rgba(0,0,0,0.9)";
+  overlay.style.display="flex";
+  overlay.style.justifyContent="center";
+  overlay.style.alignItems="center";
+  overlay.style.flexDirection="column";
+  overlay.style.zIndex="9999";
+  overlay.style.color="white";
   document.body.appendChild(overlay);
 
-  let dinoAnim = document.createElement("img");
-  dinoAnim.src = dinoImg.src;
-  dinoAnim.style.width = "120px";
-  dinoAnim.style.height = "140px";
-  dinoAnim.style.position = "relative";
-  dinoAnim.style.filter = "drop-shadow(0 0 20px yellow)";
-  dinoAnim.style.animation = "floatUp 6s ease-out forwards";
-  overlay.appendChild(dinoAnim);
+  let william=document.createElement("img");
+  william.src=dinoImg.src;
+  william.style.width="120px";
+  william.style.height="140px";
+  william.style.position="relative";
+  william.style.marginBottom="40px";
+  overlay.appendChild(william);
 
-  setTimeout(()=>{
-    let msg = document.createElement("div");
-    msg.innerHTML = "YOU FOUND THE SECRET ENDING<br><span style='font-size:20px'>Thanks for playing.</span>";
-    msg.style.fontSize = "40px";
-    msg.style.marginTop = "30px";
-    msg.style.opacity = "0";
-    msg.style.animation = "fadeIn 3s forwards";
-    overlay.appendChild(msg);
-  }, 2500);
+  let jet=document.createElement("img");
+  jet.src=jetImg.src;
+  jet.style.width="200px";
+  jet.style.height="120px";
+  jet.style.position="relative";
+  jet.style.animation="jetAttack 3s forwards";
+  overlay.appendChild(jet);
 
-  let style = document.createElement("style");
-  style.innerHTML = `
+  // Add styles for animation
+  let style=document.createElement("style");
+  style.innerHTML=`
+    @keyframes jetAttack {
+      0% { transform: translateX(600px) scale(1); opacity:1; }
+      50% { transform: translateX(0) scale(1.1); opacity:1; }
+      100% { transform: translateX(-600px) scale(0.8); opacity:0; }
+    }
     @keyframes floatUp {
-      0% { transform: translateY(0); opacity: 1; }
-      100% { transform: translateY(-300px); opacity: 1; }
+      0% { transform: translateY(0); opacity:1; }
+      100% { transform: translateY(-400px); opacity:1; }
     }
     @keyframes fadeIn {
       from { opacity: 0; }
@@ -483,13 +473,20 @@ function triggerSecretEnding(){
   `;
   document.head.appendChild(style);
 
-  background1.pause();
-  background2.pause();
+  setTimeout(()=>{
+    jet.style.display="none";
+    william.style.filter="drop-shadow(0 0 20px yellow)";
+    william.style.animation="floatUp 5s ease-out forwards";
+    setTimeout(()=>{
+      background3.play();
+      let msg=document.createElement("div");
+      msg.innerHTML="WILLIAM DEFEATED THE JET<br><span style='font-size:20px'>YOU FOUND THE SECRET ENDING</span>";
+      msg.style.fontSize="40px";
+      msg.style.marginTop="30px";
+      msg.style.opacity="0";
+      msg.style.animation="fadeIn 3s forwards";
+      overlay.appendChild(msg);
+    },2000);
+  },3000);
 
-  let secretSound = new Audio("./end.mp3");
-  secretSound.volume = 0.6;
-  secretSound.play();
-}
-</script>
-</body>
-</html>
+  background1.pause();
