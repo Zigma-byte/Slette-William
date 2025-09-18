@@ -72,7 +72,7 @@ canvas {
   </label>
   <label>
     Jump Power
-    <input type="range" min="6" max="60" id="jumpPower">
+    <input type="range" min="6" max="20" id="jumpPower">
     <span id="jumpPowerVal"></span>
   </label>
   <label>
@@ -156,6 +156,7 @@ for(let key in settings){
   settings[key].addEventListener("input",()=>{
     displayValues[key+"Val"].textContent=settings[key].value;
     localStorage.setItem(key,settings[key].value);
+    if(key==="hitHeight") dino.hitHeight=parseFloat(settings.hitHeight.value);
   });
 }
 
@@ -188,11 +189,11 @@ const ground=canvas.height-80;
 let cactusTimer=null;
 let jetsUnlocked = false;
 
-function isDefaultSettings() {
-  for (let key in defaults) {
-    let current = parseFloat(settings[key].value);
-    let def = defaults[key];
-    if (Math.abs(current - def) > 0.0001) return false; // allow tiny differences
+function isDefaultSettings(){
+  for(let key in defaults){
+    let current=parseFloat(settings[key].value);
+    let def=defaults[key];
+    if(Math.abs(current-def)>0.001) return false;
   }
   return true;
 }
@@ -270,35 +271,34 @@ function updateJets() {
     fc.x += fc.dx;
     ctx.drawImage(cacImg, fc.x, fc.y, fc.width, fc.height);
 
-    // collisions...
-    let onTop = dino.y + dino.hitHeight <= fc.y + fc.dy &&
-        dino.y + dino.hitHeight + dino.dy >= fc.y &&
-        dino.x + dino.width > fc.x &&
-        dino.x < fc.x + fc.width;
+    if (dino.hitHeight > 0) {
+      let onTop = dino.y + dino.hitHeight <= fc.y + fc.dy &&
+          dino.y + dino.hitHeight + dino.dy >= fc.y &&
+          dino.x + dino.width > fc.x &&
+          dino.x < fc.x + fc.width;
 
-    let hitSidesOrBottom = !(onTop) &&
-        dino.x < fc.x + fc.width &&
-        dino.x + dino.width > fc.x &&
-        dino.y < fc.y + fc.height &&
-        dino.y + dino.hitHeight > fc.y;
+      let hitSidesOrBottom = !(onTop) &&
+          dino.x < fc.x + fc.width &&
+          dino.x + dino.width > fc.x &&
+          dino.y < fc.y + fc.height &&
+          dino.y + dino.hitHeight > fc.y;
 
-    if(hitSidesOrBottom){
-        handleGameOver();
-    }
+      if(hitSidesOrBottom){ handleGameOver(); }
 
-    if(onTop){
-        dino.y = fc.y - dino.hitHeight;
-        dino.dy = 0;
-        dino.isJumping = false;
+      if(onTop){
+          dino.y = fc.y - dino.hitHeight;
+          dino.dy = 0;
+          dino.isJumping = false;
 
-        if(!fc.jumpTimer){
-            fc.jumpTimer = setTimeout(() => { handleGameOver(); }, 950);
-        }
-    }
+          if(!fc.jumpTimer){
+              fc.jumpTimer = setTimeout(() => { handleGameOver(); }, 950);
+          }
+      }
 
-    if(dino.isJumping && fc.jumpTimer){
-        clearTimeout(fc.jumpTimer);
-        fc.jumpTimer = null;
+      if(dino.isJumping && fc.jumpTimer){
+          clearTimeout(fc.jumpTimer);
+          fc.jumpTimer = null;
+      }
     }
 
     if(fc.y > canvas.height + 50 || fc.x + fc.width < 0){
@@ -343,9 +343,12 @@ function update(){
       c.x-=parseFloat(settings.dinoSpeed.value);
       drawCactus(c);
 
-      if(dino.x<c.x+c.width&&dino.x+dino.width>c.x&&dino.y<c.y+c.height&&dino.y+dino.hitHeight>c.y){
+      if(dino.hitHeight > 0 &&
+         dino.x<c.x+c.width&&dino.x+dino.width>c.x&&
+         dino.y<c.y+c.height&&dino.y+dino.hitHeight>c.y){
         handleGameOver();
       }
+
       if(c.x+c.width<0){cactuses.splice(i,1);passSound.currentTime=0;passSound.play();score++;i--;}
     }
 
