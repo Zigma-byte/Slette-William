@@ -249,8 +249,7 @@ function updateJets() {
             width: 20,
             height: 40,
             dy: 5,
-            dx: dx,
-            jumpTimer: null
+            dx: dx
         });
         jet.dropCooldown = Math.floor(Math.random() * 60) + 25;
       }
@@ -290,19 +289,13 @@ function updateJets() {
           dino.dy = 0;
           dino.isJumping = false;
 
-          if(!fc.jumpTimer){
-              fc.jumpTimer = setTimeout(() => { handleGameOver(); }, 950);
-          }
-      }
-
-      if(dino.isJumping && fc.jumpTimer){
-          clearTimeout(fc.jumpTimer);
-          fc.jumpTimer = null;
+          // make dino move with falling cactus
+          dino.x += fc.dx;
+          dino.y += fc.dy;
       }
     }
 
     if(fc.y > canvas.height + 50 || fc.x + fc.width < 0){
-        if(fc.jumpTimer) clearTimeout(fc.jumpTimer);
         fallingCactuses.splice(i,1);
         i--;
     }
