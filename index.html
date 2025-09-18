@@ -67,7 +67,7 @@ canvas {
   </label>
   <label>
     William's Speed
-    <input type="range" min="2" max="12" id="dinoSpeed">
+    <input type="range" min="2" max="20" id="dinoSpeed">
     <span id="dinoSpeedVal"></span>
   </label>
   <label>
@@ -77,7 +77,7 @@ canvas {
   </label>
   <label>
     Gravity
-    <input type="range" min="0.2" max="2" step="0.1" id="gravity">
+    <input type="range" min="0.2" max="5" step="0.1" id="gravity">
     <span id="gravityVal"></span>
   </label>
   <label>
@@ -242,7 +242,7 @@ function updateJets() {
             dx: dx,
             jumpTimer: null
         });
-        jet.dropCooldown = Math.floor(Math.random() * 50) + 15;
+        jet.dropCooldown = Math.floor(Math.random() * 60) + 25;
       }
     }
 
@@ -294,7 +294,7 @@ function updateJets() {
                 if(score > highScore){ highScore = score; localStorage.setItem("highScore", highScore); }
                 alert("Game Over! Score: " + Math.floor(score));
                 document.location.reload();
-            }, 800);
+            }, 950);
         }
     }
 
