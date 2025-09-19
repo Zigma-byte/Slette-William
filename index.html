@@ -185,10 +185,12 @@ let normalHighScore=localStorage.getItem("normalHighScore")||0;
 let moddedHighScore=localStorage.getItem("moddedHighScore")||0;
 let gameOver=false;
 let paused=false;
-let pendingBounce=null; // store reaction window
 const ground=canvas.height-80;
 let cactusTimer=null;
 let jetsUnlocked = false;
+
+// 🔥 NEW: bounce counter mechanic
+let pendingBounce = null;
 
 function isDefaultSettings(){
   for(let key in defaults){
@@ -271,6 +273,7 @@ function updateJets() {
     fc.x += fc.dx;
     ctx.drawImage(cacImg, fc.x, fc.y, fc.width, fc.height);
 
+    // 🔥 Falling cactus collision with counter
     if (dino.hitHeight > 0) {
       let collides = dino.x < fc.x + fc.width &&
                      dino.x + dino.width > fc.x &&
@@ -279,9 +282,13 @@ function updateJets() {
 
       if (collides) {
         if (!pendingBounce) {
+          // Start 1 second reaction window
           pendingBounce = { time: Date.now(), cactus: fc };
-        } else if (Date.now() - pendingBounce.time > 1000) {
-          handleGameOver();
+        } else {
+          // If 1s passes without a jump → die
+          if (Date.now() - pendingBounce.time > 1000) {
+            handleGameOver();
+          }
         }
       }
     }
