@@ -6,68 +6,716 @@
 <title>Slette William</title>
 <link rel="icon" type="image/x-icon" href="./lw.png">
 <style>
-  :root { --ui-bg:#fff; --ui-border:#000; }
+  /* ---------- UI ---------- */
+  :root { --ui-bg: #fff; --ui-border: #000; }
   html,body{height:100%}
-  body{margin:0;background:#f7f7f7;font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;overflow:hidden}
-  .settings{position:fixed;top:0;left:0;width:100%;background:var(--ui-bg);border-bottom:2px solid var(--ui-border);padding:10px;display:flex;flex-wrap:wrap;gap:10px;z-index:10;box-sizing:border-box;align-items:center}
-  .settings label{display:flex;flex-direction:column;font-size:14px;min-width:160px}
-  input[type=range]{width:150px}
-  canvas{display:block;position:absolute;top:120px;left:0;width:100%;height:calc(100vh - 120px)}
-  #pauseMenu,#gameOverMenu{position:fixed;top:120px;left:0;width:100%;height:calc(100vh - 120px);background:rgba(0,0,0,0.7);color:white;display:none;justify-content:center;align-items:center;z-index:20}
-  #pauseMenu div,#gameOverMenu div{text-align:center}
-  #pauseMenu button,#gameOverMenu button{margin:10px;padding:10px 20px;font-size:16px;cursor:pointer}
-  @media(max-width:600px){.settings{gap:8px;padding:8px}.settings label{min-width:120px;font-size:12px}}
+  body {
+    margin: 0;
+    background: #f7f7f7;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    overflow: hidden;
+  }
+
+  .settings {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background: var(--ui-bg);
+    border-bottom: 2px solid var(--ui-border);
+    padding: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    z-index: 10;
+    box-sizing: border-box;
+    align-items: center;
+  }
+  .settings label { display:flex; flex-direction: column; font-size:14px; min-width:160px; }
+  input[type=range]{ width: 150px; }
+  canvas {
+    display:block;
+    position:absolute;
+    top:120px;
+    left:0;
+    width:100%;
+    height:calc(100vh - 120px);
+  }
+
+  #pauseMenu{
+    position: fixed;
+    top:120px;
+    left:0;
+    width:100%;
+    height: calc(100vh - 120px);
+    background: rgba(0,0,0,0.7);
+    color:white;
+    display:none;
+    justify-content:center;
+    align-items:center;
+    z-index:20;
+  }
+  #pauseMenu div{text-align:center;}
+  #pauseMenu button{margin:10px; padding:10px 20px; font-size:16px; cursor:pointer;}
+
+  /* small responsive */
+  @media (max-width:600px){
+    .settings { gap:8px; padding:8px; }
+    .settings label { min-width:120px; font-size:12px; }
+  }
 </style>
 </head>
 <body>
+
 <div class="settings">
-  <label>Cactus Spawn Frequency (ms)<input type="range" min="400" max="2000" id="spawnFreq"><span id="spawnFreqVal"></span></label>
-  <label>William's Speed<input type="range" min="2" max="20" id="dinoSpeed"><span id="dinoSpeedVal"></span></label>
-  <label>Jump Power<input type="range" min="6" max="20" id="jumpPower"><span id="jumpPowerVal"></span></label>
-  <label>Gravity<input type="range" min="0.2" max="5" step="0.1" id="gravity"><span id="gravityVal"></span></label>
-  <label>Passive Score Rate (+points/sec)<input type="range" min="0" max="10" step="0.05" id="scoreRate"><span id="scoreRateVal"></span></label>
-  <label>Hard Jump Chance (%)<input type="range" min="0" max="100" id="hardJump"><span id="hardJumpVal"></span></label>
-  <label>Character Hitbox Height<input type="range" min="0" max="100" id="hitHeight"><span id="hitHeightVal"></span></label>
+  <label>
+    Cactus Spawn Frequency (ms)
+    <input type="range" min="400" max="2000" id="spawnFreq">
+    <span id="spawnFreqVal"></span>
+  </label>
+  <label>
+    William's Speed
+    <input type="range" min="2" max="20" id="dinoSpeed">
+    <span id="dinoSpeedVal"></span>
+  </label>
+  <label>
+    Jump Power
+    <input type="range" min="6" max="20" id="jumpPower">
+    <span id="jumpPowerVal"></span>
+  </label>
+  <label>
+    Gravity
+    <input type="range" min="0.2" max="5" step="0.1" id="gravity">
+    <span id="gravityVal"></span>
+  </label>
+  <label>
+    Passive Score Rate (+points/sec)
+    <input type="range" min="0" max="10" step="0.05" id="scoreRate">
+    <span id="scoreRateVal"></span>
+  </label>
+  <label>
+    Hard Jump Chance (%)
+    <input type="range" min="0" max="100" id="hardJump">
+    <span id="hardJumpVal"></span>
+  </label>
+  <label>
+    Character Hitbox Height
+    <input type="range" min="0" max="100" id="hitHeight">
+    <span id="hitHeightVal"></span>
+  </label>
   <button id="resetSettings">Reset Settings</button>
 </div>
+
 <canvas id="gameCanvas"></canvas>
-<div id="pauseMenu"><div><h2>Game Paused</h2><button onclick="resumeGame()">Resume</button><button onclick="restartGame()">Restart</button></div></div>
-<div id="gameOverMenu"><div><h2 id="gameOverText">Game Over!</h2><p id="finalScore"></p><button onclick="restartGame()">Restart</button></div></div>
+
+<div id="pauseMenu">
+  <div>
+    <h2>Game Paused</h2>
+    <button onclick="resumeGame()">Resume</button>
+    <button onclick="restartGame()">Restart</button>
+  </div>
+</div>
 
 <script>
-const canvas=document.getElementById("gameCanvas"),ctx=canvas.getContext("2d");
-function resizeCanvas(){canvas.width=window.innerWidth;canvas.height=window.innerHeight-120}resizeCanvas();window.addEventListener("resize",resizeCanvas);
-const dinoImg=new Image(),cacImg=new Image(),jetImg=new Image();dinoImg.src="./lw.png";cacImg.src="./cac.png";jetImg.src="./fw.png";
-const passSound=new Audio("./sound.mp3"),milestoneSound=new Audio("./over.mp3"),background1=new Audio("./back.mp3"),background2=new Audio("./back2.mp3"),background3=new Audio("./end.mp3");
-background1.volume=background2.volume=.4;background3.volume=.6;
-const settings={spawnFreq:spawnFreq,dinoSpeed:dinoSpeed,jumpPower:jumpPower,gravity:gravity,scoreRate:scoreRate,hardJump:hardJump,hitHeight:hitHeight};
-const displays={spawnFreqVal:spawnFreqVal,dinoSpeedVal:dinoSpeedVal,jumpPowerVal:jumpPowerVal,gravityVal:gravityVal,scoreRateVal:scoreRateVal,hardJumpVal:hardJumpVal,hitHeightVal:hitHeightVal};
-const defaults={spawnFreq:1000,dinoSpeed:6,jumpPower:12,gravity:.6,scoreRate:.2,hardJump:12.5,hitHeight:20};
-for(let k in settings){settings[k].value=localStorage.getItem(k)||defaults[k];displays[k+"Val"].textContent=settings[k].value;settings[k].addEventListener("input",()=>{displays[k+"Val"].textContent=settings[k].value;localStorage.setItem(k,settings[k].value);if(k==="hitHeight")dino.hitHeight=parseFloat(settings.hitHeight.value)})}
-resetSettings.onclick=()=>{for(let k in defaults)localStorage.setItem(k,defaults[k]);location.reload()};
-let dino={x:50,y:-10,width:60,height:70,hitHeight:parseFloat(settings.hitHeight.value),dy:0,isJumping:false};
-let cactuses=[],jets=[],fallingCactuses=[],score=0,highScore=localStorage.getItem("highScore")||0,normalHighScore=localStorage.getItem("normalHighScore")||0,moddedHighScore=localStorage.getItem("moddedHighScore")||0,gameOver=false,paused=false,cactusTimer=null,jetsUnlocked=false,pendingBounce=null,lastMilestone=0;
-const ground=()=>canvas.height-80;
-function isDefaultSettings(){for(let k in defaults){if(Math.abs(parseFloat(settings[k].value)-defaults[k])>1e-3)return false}return true}
-function drawDino(){ctx.drawImage(dinoImg,dino.x,dino.y,dino.width,dino.height)}function drawCactus(c){ctx.drawImage(cacImg,c.x,c.y,c.width,c.height)}
-function spawnCactus(){if(paused||gameOver)return;let w=Math.random()*20+20,h=Math.random()*40+40,g=Math.random()*200+400;if(Math.random()*100<parseFloat(settings.hardJump.value)){let f={x:canvas.width+g,y:ground()+(60-h),width:w,height:h};let s={x:f.x+f.width+Math.random()*10+10,y:ground()+(60-h),width:w,height:h};cactuses.push(f,s)}else cactuses.push({x:canvas.width+g,y:ground()+(60-h),width:w,height:h});cactusTimer=setTimeout(spawnCactus,Math.random()*700+parseFloat(settings.spawnFreq.value))}
-function spawnJet(){if(paused||gameOver)return;jets.push({x:-100,y:Math.random()*90+20,width:100,height:60,speed:4,dropCooldown:Math.random()*80+30,spawnTime:Date.now()});setTimeout(spawnJet,Math.random()*5e3+5e3)}
-function updateJets(){for(let i=0;i<jets.length;i++){let j=jets[i];j.x+=j.speed;if(Date.now()-j.spawnTime>450){j.dropCooldown--;if(j.dropCooldown<=0){fallingCactuses.push({x:j.x+j.width/2-10,y:j.y+j.height,width:20,height:40,dy:5,dx:-.2-Math.random()*5});j.dropCooldown=Math.random()*60+25}}if(j.x>canvas.width+100){jets.splice(i,1);i--}else ctx.drawImage(jetImg,j.x,j.y,j.width,j.height)}for(let i=0;i<fallingCactuses.length;i++){let f=fallingCactuses[i];f.y+=f.dy;f.x+=f.dx;ctx.drawImage(cacImg,f.x,f.y,f.width,f.height);if(dino.hitHeight>0&&dino.x<f.x+f.width&&dino.x+dino.width>f.x&&dino.y<f.y+f.height&&dino.y+dino.hitHeight>f.y){if(!pendingBounce)pendingBounce={time:Date.now(),cactus:f}}if(f.y>canvas.height+50||f.x+f.width<0){fallingCactuses.splice(i,1);i--}}}
-function handleGameOver(){gameOver=true;if(score>highScore){highScore=score;localStorage.setItem("highScore",highScore)}if(isDefaultSettings()&&score>normalHighScore){normalHighScore=score;localStorage.setItem("normalHighScore",normalHighScore)}else if(!isDefaultSettings()&&score>moddedHighScore){moddedHighScore=score;localStorage.setItem("moddedHighScore",moddedHighScore)}finalScore.textContent="Final Score: "+Math.floor(score);gameOverMenu.style.display="flex"}
-function update(){ctx.clearRect(0,0,canvas.width,canvas.height);if(!paused&&!gameOver){dino.y+=dino.dy;if(dino.y+dino.height<canvas.height)dino.dy+=parseFloat(settings.gravity.value);if(dino.y>=ground()){dino.y=ground();dino.dy=0;dino.isJumping=false}for(let i=0;i<cactuses.length;i++){let c=cactuses[i];c.x-=parseFloat(settings.dinoSpeed.value);drawCactus(c);if(dino.hitHeight>0&&dino.x<c.x+c.width&&dino.x+dino.width>c.x&&dino.y<c.y+c.height&&dino.y+dino.hitHeight>c.y)handleGameOver();if(c.x+c.width<0){cactuses.splice(i,1);passSound.currentTime=0;passSound.play();score++;i--}}drawDino();if(!jetsUnlocked&&score>20){jetsUnlocked=true;spawnJet()}if(jetsUnlocked)updateJets();if(pendingBounce&&Date.now()-pendingBounce.time>1e3)handleGameOver();ctx.fillStyle="black";ctx.font="20px Arial";ctx.fillText("Score: "+Math.floor(score),canvas.width-250,30);ctx.fillText("High Score: "+Math.floor(highScore),canvas.width-250,55);ctx.fillText("Normal High: "+Math.floor(normalHighScore),canvas.width-250,80);ctx.fillText("Modded High: "+Math.floor(moddedHighScore),canvas.width-250,105);if(score>=300)triggerSecretEnding()}requestAnimationFrame(update)}
-setInterval(()=>{if(!paused&&!gameOver){score+=parseFloat(settings.scoreRate.value)*.5;let f=Math.floor(score);if(f%10===0&&f!==lastMilestone){milestoneSound.currentTime=0;milestoneSound.play();lastMilestone=f}}},500);
-function jump(){if(pendingBounce){dino.dy=-parseFloat(settings.jumpPower.value);dino.isJumping=true;pendingBounce=null}else if(!dino.isJumping){dino.dy=-parseFloat(settings.jumpPower.value);dino.isJumping=true}}
-function togglePause(){paused=!paused;pauseMenu.style.display=paused?"flex":"none"}function resumeGame(){paused=false;pauseMenu.style.display="none"}
-function restartGame(){clearTimeout(cactusTimer);score=0;gameOver=false;paused=false;cactuses=[];jets=[];fallingCactuses=[];jetsUnlocked=false;dino.y=-10;dino.dy=0;dino.isJumping=false;pendingBounce=null;lastMilestone=0;pauseMenu.style.display="none";gameOverMenu.style.display="none";spawnCactus()}
-document.addEventListener("keydown",e=>{if(e.code==="Space"){jump();if(!musicPlaying)playRandomTrack()}if(e.code==="KeyP")togglePause()});
-canvas.addEventListener("click",()=>{jump();if(!musicPlaying)playRandomTrack()});
-canvas.addEventListener("touchstart",e=>{e.preventDefault();jump();if(!musicPlaying)playRandomTrack()},{passive:false});
-dinoImg.onload=()=>{update();spawnCactus()};
-let musicPlaying=false;function playRandomTrack(){musicPlaying=true;background1.pause();background2.pause();background1.currentTime=0;background2.currentTime=0;let p=Math.random()<.5?background1:background2;p.play();p.onended=()=>{musicPlaying=false;playRandomTrack()}}
-function triggerSecretEnding(){[endingVictory,endingUfo,endingSunset][Math.floor(Math.random()*3)]()}
-function endingVictory(){gameOver=true;background1.pause();background2.pause();background3.play();ctx.fillStyle="gold";ctx.font="50px Arial";ctx.fillText("You Win!",canvas.width/2-100,canvas.height/2);setTimeout(()=>gameOverMenu.style.display="flex",2000)}
-function endingUfo(){gameOver=true;ctx.fillStyle="lime";ctx.font="40px Arial";ctx.fillText("Abducted by UFO!",canvas.width/2-150,canvas.height/2);setTimeout(()=>gameOverMenu.style.display="flex",2000)}
-function endingSunset(){gameOver=true;ctx.fillStyle="orange";ctx.font="40px Arial";ctx.fillText("Peaceful Sunset Ending",canvas.width/2-200,canvas.height/2);setTimeout(()=>gameOverMenu.style.display="flex",2000)}
+/* ------------------- Core game setup (keeps original behaviour) ------------------- */
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+function resizeCanvas(){ canvas.width = window.innerWidth; canvas.height = window.innerHeight - 120; }
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+const dinoImg = new Image();
+const cacImg  = new Image();
+const jetImg  = new Image();
+dinoImg.src = './lw.png';
+cacImg.src  = './cac.png';
+jetImg.src  = './fw.png';
+
+const passSound = new Audio('./sound.mp3');
+const milestoneSound = new Audio('./over.mp3');
+const background1 = new Audio('./back.mp3');
+const background2 = new Audio('./back2.mp3');
+const background3 = new Audio('./end.mp3'); // ending music
+background1.volume = 0.4;
+background2.volume = 0.4;
+background3.volume = 0.6;
+
+const settings = {
+  spawnFreq: document.getElementById('spawnFreq'),
+  dinoSpeed: document.getElementById('dinoSpeed'),
+  jumpPower: document.getElementById('jumpPower'),
+  gravity: document.getElementById('gravity'),
+  scoreRate: document.getElementById('scoreRate'),
+  hardJump: document.getElementById('hardJump'),
+  hitHeight: document.getElementById('hitHeight')
+};
+const displayValues = {
+  spawnFreqVal: document.getElementById('spawnFreqVal'),
+  dinoSpeedVal: document.getElementById('dinoSpeedVal'),
+  jumpPowerVal: document.getElementById('jumpPowerVal'),
+  gravityVal: document.getElementById('gravityVal'),
+  scoreRateVal: document.getElementById('scoreRateVal'),
+  hardJumpVal: document.getElementById('hardJumpVal'),
+  hitHeightVal: document.getElementById('hitHeightVal')
+};
+
+const defaults = { spawnFreq:1000, dinoSpeed:6, jumpPower:12, gravity:0.6, scoreRate:0.2, hardJump:12.5, hitHeight:20 };
+for (let key in settings) {
+  settings[key].value = localStorage.getItem(key) || defaults[key];
+  displayValues[key + 'Val'].textContent = settings[key].value;
+  settings[key].addEventListener('input', () => {
+    displayValues[key + 'Val'].textContent = settings[key].value;
+    localStorage.setItem(key, settings[key].value);
+    if (key === 'hitHeight') dino.hitHeight = parseFloat(settings.hitHeight.value);
+  });
+}
+document.getElementById('resetSettings').addEventListener('click', () => {
+  for (let key in defaults) localStorage.setItem(key, defaults[key]);
+  location.reload();
+});
+
+let dino = { x:50, y:-10, width:60, height:70, hitHeight: parseFloat(settings.hitHeight.value), dy:0, isJumping:false };
+let cactuses = [], jets = [], fallingCactuses = [];
+let score = 0;
+let highScore = localStorage.getItem('highScore') || 0;
+let normalHighScore = localStorage.getItem('normalHighScore') || 0;
+let moddedHighScore = localStorage.getItem('moddedHighScore') || 0;
+let gameOver = false, paused = false;
+let cactusTimer = null;
+let jetsUnlocked = false;
+let pendingBounce = null;
+let lastMilestone = 0;
+const ground = () => canvas.height - 80;
+
+function isDefaultSettings(){
+  for (let key in defaults){
+    let current = parseFloat(settings[key].value);
+    if (Math.abs(current - defaults[key]) > 0.001) return false;
+  }
+  return true;
+}
+
+function drawDino(){ ctx.drawImage(dinoImg, dino.x, dino.y, dino.width, dino.height); }
+function drawCactus(c){ ctx.drawImage(cacImg, c.x, c.y, c.width, c.height); }
+
+function spawnCactus(){
+  if (paused || gameOver) return;
+  let width = Math.floor(Math.random()*20)+20;
+  let height = Math.floor(Math.random()*40)+40;
+  let gap = Math.floor(Math.random()*200)+400;
+  if (Math.random()*100 < parseFloat(settings.hardJump.value)) {
+    let first = { x: canvas.width + gap, y: ground() + (60 - height), width, height };
+    let second = { x: first.x + first.width + Math.floor(Math.random()*10)+10, y: ground() + (60 - height), width, height };
+    cactuses.push(first, second);
+  } else {
+    cactuses.push({ x: canvas.width + gap, y: ground() + (60 - height), width, height });
+  }
+  cactusTimer = setTimeout(spawnCactus, Math.random()*700 + parseFloat(settings.spawnFreq.value));
+}
+
+// Jet spawn/update (keeps original)
+function spawnJet() {
+  if (paused || gameOver) return;
+  jets.push({
+    x: -100,
+    y: Math.random() * 90 + 20,
+    width: 100,
+    height: 60,
+    speed: 4,
+    dropCooldown: Math.floor(Math.random()*80) + 30,
+    spawnTime: Date.now()
+  });
+  setTimeout(spawnJet, Math.random()*5000 + 5000);
+}
+function updateJets(){
+  for (let i=0;i<jets.length;i++){
+    let jet = jets[i];
+    jet.x += jet.speed;
+    if (Date.now() - jet.spawnTime > 450) {
+      jet.dropCooldown--;
+      if (jet.dropCooldown <= 0) {
+        let dx = -0.2 - Math.random()*5;
+        fallingCactuses.push({ x: jet.x + jet.width/2 - 10, y: jet.y + jet.height, width:20, height:40, dy:5, dx });
+        jet.dropCooldown = Math.floor(Math.random()*60)+25;
+      }
+    }
+    if (jet.x > canvas.width + 100) { jets.splice(i,1); i--; } else {
+      ctx.drawImage(jetImg, jet.x, jet.y, jet.width, jet.height);
+    }
+  }
+
+  // falling cactuses
+  for (let i=0;i<fallingCactuses.length;i++){
+    let fc = fallingCactuses[i];
+    fc.y += fc.dy; fc.x += fc.dx;
+    ctx.drawImage(cacImg, fc.x, fc.y, fc.width, fc.height);
+    if (dino.hitHeight > 0){
+      let collides = dino.x < fc.x + fc.width &&
+                     dino.x + dino.width > fc.x &&
+                     dino.y < fc.y + fc.height &&
+                     dino.y + dino.hitHeight > fc.y;
+      if (collides) {
+        if (!pendingBounce) pendingBounce = { time: Date.now(), cactus: fc };
+      }
+    }
+    if (fc.y > canvas.height + 50 || fc.x + fc.width < 0) { fallingCactuses.splice(i,1); i--; }
+  }
+}
+
+/* ------------------- Game loop & controls ------------------- */
+function handleGameOver(){
+  gameOver = true;
+  // highscore handling
+  if (score > highScore) { highScore = score; localStorage.setItem('highScore', highScore); }
+  if (isDefaultSettings() && score > normalHighScore) { normalHighScore = score; localStorage.setItem('normalHighScore', normalHighScore); }
+  else if (!isDefaultSettings() && score > moddedHighScore) { moddedHighScore = score; localStorage.setItem('moddedHighScore', moddedHighScore); }
+  alert('Game Over! Score: ' + Math.floor(score));
+  document.location.reload();
+}
+
+function update(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  if (!paused && !gameOver) {
+    dino.y += dino.dy;
+    if (dino.y + dino.height < canvas.height) dino.dy += parseFloat(settings.gravity.value);
+    if (dino.y >= ground()) { dino.y = ground(); dino.dy = 0; dino.isJumping = false; }
+
+    for (let i=0;i<cactuses.length;i++){
+      let c = cactuses[i];
+      c.x -= parseFloat(settings.dinoSpeed.value);
+      drawCactus(c);
+
+      if (dino.hitHeight > 0 &&
+          dino.x < c.x + c.width && dino.x + dino.width > c.x &&
+          dino.y < c.y + c.height && dino.y + dino.hitHeight > c.y) {
+        handleGameOver();
+      }
+
+      if (c.x + c.width < 0) { cactuses.splice(i,1); passSound.currentTime = 0; passSound.play(); score++; i--; }
+    }
+
+    drawDino();
+
+    if (!jetsUnlocked && score > 20) { jetsUnlocked = true; spawnJet(); }
+    if (jetsUnlocked) updateJets();
+
+    if (pendingBounce && Date.now() - pendingBounce.time > 1000) handleGameOver();
+
+    ctx.fillStyle = 'black';
+    ctx.font = '20px Arial';
+    ctx.fillText('Score: ' + Math.floor(score), canvas.width-250, 30);
+    ctx.fillText('High Score: ' + Math.floor(highScore), canvas.width-250, 55);
+    ctx.fillText('Normal High: ' + Math.floor(normalHighScore), canvas.width-250, 80);
+    ctx.fillText('Modded High: ' + Math.floor(moddedHighScore), canvas.width-250, 105);
+
+    if (score >= 300) triggerSecretEnding();
+  }
+  requestAnimationFrame(update);
+}
+
+setInterval(()=>{
+  if(!paused && !gameOver){
+    score += parseFloat(settings.scoreRate.value) * 0.5;
+    let floored = Math.floor(score);
+    if (floored % 10 === 0 && floored !== lastMilestone) {
+      milestoneSound.currentTime = 0; milestoneSound.play(); lastMilestone = floored;
+    }
+  }
+}, 500);
+
+function jump(){
+  if (pendingBounce) {
+    dino.dy = -parseFloat(settings.jumpPower.value);
+    dino.isJumping = true;
+    pendingBounce = null;
+  } else if (!dino.isJumping) {
+    dino.dy = -parseFloat(settings.jumpPower.value);
+    dino.isJumping = true;
+  }
+}
+
+function togglePause(){ paused = !paused; document.getElementById('pauseMenu').style.display = paused ? 'flex' : 'none'; }
+function resumeGame(){ paused = false; document.getElementById('pauseMenu').style.display = 'none'; }
+function restartGame(){
+  clearTimeout(cactusTimer);
+  score = 0; gameOver = false; paused = false;
+  cactuses = []; jets = []; fallingCactuses = [];
+  jetsUnlocked = false; dino.y = -10; dino.dy = 0; dino.isJumping = false;
+  pendingBounce = null; lastMilestone = 0;
+  document.getElementById('pauseMenu').style.display = 'none';
+  spawnCactus();
+}
+
+/* controls */
+document.addEventListener('keydown', (e)=>{
+  if (e.code === 'Space') { jump(); if (!musicPlaying) playRandomTrack(); }
+  if (e.code === 'KeyP') togglePause();
+});
+canvas.addEventListener('click', ()=>{ jump(); if (!musicPlaying) playRandomTrack(); });
+canvas.addEventListener('touchstart', (e)=>{ e.preventDefault(); jump(); if (!musicPlaying) playRandomTrack(); }, { passive:false });
+
+dinoImg.onload = () => { update(); spawnCactus(); };
+
+/* music helper */
+let musicPlaying = false;
+function playRandomTrack(){
+  musicPlaying = true;
+  let pick = Math.random() < 0.5 ? background1 : background2;
+  background1.pause(); background2.pause();
+  background1.currentTime = 0; background2.currentTime = 0;
+  pick.play();
+  pick.onended = () => { musicPlaying = false; playRandomTrack(); };
+}
+
+/* ------------------- Randomized cinematic endings (3 variants) ------------------- */
+
+/* helper: create overlay with cinematic bars */
+function createOverlay(background = 'black'){
+  // remove existing overlay if any
+  let existing = document.getElementById('__secret_overlay');
+  if (existing) existing.remove();
+
+  let overlay = document.createElement('div');
+  overlay.id = '__secret_overlay';
+  overlay.style.position = 'fixed';
+  overlay.style.top = '0';
+  overlay.style.left = '0';
+  overlay.style.width = '100%';
+  overlay.style.height = '100%';
+  overlay.style.background = background;
+  overlay.style.display = 'flex';
+  overlay.style.justifyContent = 'center';
+  overlay.style.alignItems = 'center';
+  overlay.style.flexDirection = 'column';
+  overlay.style.zIndex = '99999';
+  overlay.style.overflow = 'hidden';
+  overlay.style.pointerEvents = 'auto';
+  document.body.appendChild(overlay);
+
+  // cinematic bars
+  const barHeight = Math.max(80, Math.floor(window.innerHeight * 0.12));
+  let topBar = document.createElement('div');
+  let bottomBar = document.createElement('div');
+  [topBar, bottomBar].forEach(bar => {
+    bar.style.position = 'absolute';
+    bar.style.width = '100%';
+    bar.style.height = barHeight + 'px';
+    bar.style.background = 'black';
+    bar.style.left = '0';
+    bar.style.zIndex = '100000';
+  });
+  topBar.style.top = '0';
+  bottomBar.style.bottom = '0';
+  overlay.appendChild(topBar);
+  overlay.appendChild(bottomBar);
+
+  return overlay;
+}
+
+/* helper: common final text + restart button */
+function showEndingText(overlay, mainText, subText, delayMs = 0){
+  // small fade-in CSS
+  let style = document.createElement('style');
+  style.innerHTML = `
+    @keyframes __ending_fadein { from{opacity:0; transform: translateY(10px);} to{opacity:1; transform: translateY(0);} }
+  `;
+  document.head.appendChild(style);
+
+  setTimeout(()=>{
+    let msg = document.createElement('div');
+    msg.innerHTML = `<div style="text-align:center">
+      <div style="font-size:48px; font-weight:700; margin-bottom:12px">${mainText}</div>
+      <div style="font-size:18px; opacity:0.95">${subText}</div>
+    </div>`;
+    msg.style.color = 'white';
+    msg.style.zIndex = '100001';
+    msg.style.opacity = '0';
+    msg.style.animation = '__ending_fadein 1.2s ease forwards';
+    overlay.appendChild(msg);
+
+    let restartBtn = document.createElement('button');
+    restartBtn.textContent = 'Restart Game';
+    restartBtn.onclick = () => location.reload();
+    restartBtn.style.zIndex = '100001';
+    restartBtn.style.padding = '14px 26px';
+    restartBtn.style.fontSize = '18px';
+    restartBtn.style.marginTop = '24px';
+    restartBtn.style.cursor = 'pointer';
+    overlay.appendChild(restartBtn);
+  }, delayMs);
+}
+
+/* trigger picks a random ending */
+function triggerSecretEnding(){
+  if (gameOver && paused) {
+    // already triggered? still allow re-trigger if not yet overlay
+    const existing = document.getElementById('__secret_overlay');
+    if (existing) return;
+  }
+  gameOver = true;
+  paused = true;
+  clearTimeout(cactusTimer);
+  // pause music/sounds
+  try { background1.pause(); background2.pause(); background1.currentTime = 0; background2.currentTime = 0; } catch(e){}
+  // pick variant
+  const endings = [ending1, ending2, ending3];
+  const choice = Math.floor(Math.random() * endings.length);
+  // debug: console.log('Ending chosen', choice+1);
+  endings[choice]();
+}
+
+/* ------------------ ENDING 1: William escapes & wins (cinematic wins) ------------------ */
+function ending1(){
+  const overlay = createOverlay('black');
+
+  // subtle background flash (keeps movie look)
+  overlay.style.animation = 'none';
+  let style = document.createElement('style');
+  style.innerHTML = `
+    @keyframes __flashBG { 0%{background:black;} 50%{background: #150000;} 100%{background:black;} }
+    @keyframes __william_move { 0%{ transform: translate(0,0) rotate(0deg); } 25%{ transform: translate(50px,-50px) rotate(-12deg);} 50%{ transform: translate(140px, -10px) rotate(6deg);} 75%{ transform: translate(300px, -40px) rotate(-6deg);} 100%{ transform: translate(520px, 0px) rotate(0deg);} }
+    @keyframes __jet_fly { 0%{ transform: translateX(-100%);} 100%{ transform: translateX(150%);} }
+  `;
+  document.head.appendChild(style);
+  overlay.style.animation = '__flashBG 1s infinite alternate';
+
+  // William sprite
+  let william = document.createElement('img');
+  william.src = dinoImg.src;
+  william.style.width = '160px';
+  william.style.height = '180px';
+  william.style.position = 'absolute';
+  william.style.bottom = Math.max(120, Math.floor(window.innerHeight * 0.12)) + 'px';
+  william.style.left = '80px';
+  william.style.zIndex = '100002';
+  overlay.appendChild(william);
+
+  // jets that fly across (decorative)
+  let jetsArray = [];
+  for (let i=0;i<5;i++){
+    let jet = document.createElement('img');
+    jet.src = jetImg.src;
+    jet.style.width = '220px';
+    jet.style.height = '140px';
+    jet.style.position = 'absolute';
+    jet.style.top = (Math.random()* (window.innerHeight*0.5)) + 'px';
+    jet.style.left = (-400 - i*200) + 'px';
+    jet.style.opacity = '0.95';
+    jet.style.zIndex = '100001';
+    overlay.appendChild(jet);
+    // animate using Web Animations for consistent timing
+    let duration = 3000 + Math.random()*3000;
+    setTimeout(()=> {
+      jet.animate([
+        { transform: `translateX(0)` },
+        { transform: `translateX(${window.innerWidth + 800}px)` }
+      ], { duration, iterations: 1, easing: 'linear' });
+    }, i * 600);
+    jetsArray.push(jet);
+  }
+
+  // falling cactuses (visual)
+  let fallingInterval = setInterval(()=>{
+    let fc = document.createElement('img');
+    fc.src = cacImg.src;
+    fc.style.position = 'absolute';
+    fc.style.width = '40px';
+    fc.style.height = '60px';
+    fc.style.left = (Math.random() * window.innerWidth) + 'px';
+    fc.style.top = '-60px';
+    fc.style.zIndex = '100001';
+    overlay.appendChild(fc);
+    let dur = 3000 + Math.random()*2500;
+    fc.animate([
+      { transform: 'translateY(0)' },
+      { transform: `translateY(${window.innerHeight + 150}px)` }
+    ], { duration: dur, easing: 'linear', fill: 'forwards' });
+    setTimeout(()=> { try{ fc.remove(); }catch(e){} }, dur + 50);
+  }, 900);
+
+  // animate william across a nice cinematic path lasting ~10s
+  william.style.transformOrigin = 'left bottom';
+  william.animate([
+    { transform: 'translateX(0) translateY(0) rotate(0deg)' },
+    { transform: 'translateX(200px) translateY(-60px) rotate(-12deg)' },
+    { transform: 'translateX(420px) translateY(-10px) rotate(8deg)' },
+    { transform: 'translateX(720px) translateY(-30px) rotate(-6deg)' }
+  ], { duration: 10000, easing: 'cubic-bezier(.22,.9,.36,1)', fill: 'forwards' });
+
+  // final sequence: after ~10s show text and float up (3s)
+  setTimeout(()=>{
+    clearInterval(fallingInterval);
+    // william floats up / scales slightly
+    william.animate([
+      { transform: getComputedStyle(william).transform || 'translateY(0)', opacity: 1 },
+      { transform: 'translateY(-420px) scale(1.22)', opacity: 1 }
+    ], { duration: 3000, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'forwards' });
+
+    // show text (with slight delay so animation looks cinematic)
+    showEndingText(overlay, 'WILLIAM ESCAPED AND WON THE WAR!', 'THE END — thanks for playing', 900);
+    try { background3.currentTime = 0; background3.play(); } catch(e){}
+  }, 10000);
+}
+
+/* ------------------ ENDING 2: UFO Abduction ------------------ */
+function ending2(){
+  const overlay = createOverlay('radial-gradient(circle at 50% 10%, rgba(10,10,40,1), rgba(0,0,0,1))');
+
+  // add style for UFO beam and easing
+  let style = document.createElement('style');
+  style.innerHTML = `
+    @keyframes __ufo_descend { 0%{ transform: translateY(-500px) scale(0.8);} 60%{ transform: translateY(80px) scale(1);} 100%{ transform: translateY(80px) scale(1);} }
+    @keyframes __beam_grow { 0%{ height: 0; opacity: 0 } 100%{ height: 420px; opacity: 0.85 } }
+    @keyframes __william_levitate { 0%{ transform: translateY(0);} 100%{ transform: translateY(-320px); } }
+  `;
+  document.head.appendChild(style);
+
+  // William center-bottom
+  let baseBottom = Math.max(120, Math.floor(window.innerHeight * 0.12));
+  let william = document.createElement('img');
+  william.src = dinoImg.src;
+  william.style.width = '160px';
+  william.style.height = '180px';
+  william.style.position = 'absolute';
+  william.style.left = '50%';
+  william.style.transform = 'translateX(-50%)';
+  william.style.bottom = baseBottom + 'px';
+  william.style.zIndex = '100002';
+  overlay.appendChild(william);
+
+  // UFO
+  let ufo = document.createElement('img');
+  ufo.src = jetImg.src;
+  ufo.style.width = '320px';
+  ufo.style.height = '220px';
+  ufo.style.position = 'absolute';
+  ufo.style.left = '50%';
+  ufo.style.transform = 'translateX(-50%)';
+  ufo.style.top = '-320px';
+  ufo.style.zIndex = '100003';
+  overlay.appendChild(ufo);
+  // animate UFO descend to middle in 4s
+  ufo.animate([
+    { transform: 'translateX(-50%) translateY(-500px) scale(0.9)' },
+    { transform: 'translateX(-50%) translateY(80px) scale(1)' }
+  ], { duration: 4000, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'forwards' });
+
+  // beam div
+  let beam = document.createElement('div');
+  beam.style.position = 'absolute';
+  beam.style.left = '50%';
+  beam.style.transform = 'translateX(-50%)';
+  beam.style.top = '190px';
+  beam.style.width = '140px';
+  beam.style.height = '0px';
+  beam.style.zIndex = '100001';
+  beam.style.background = 'linear-gradient(to bottom, rgba(255,255,210,0.9), rgba(255,255,150,0.25))';
+  beam.style.borderRadius = '6px';
+  beam.style.filter = 'blur(12px)';
+  overlay.appendChild(beam);
+
+  // after UFO reaches, grow beam and levitate William
+  setTimeout(()=>{
+    beam.animate([
+      { height: '0px', opacity: 0 },
+      { height: '420px', opacity: 0.9 }
+    ], { duration: 2400, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'forwards' });
+
+    william.animate([
+      { transform: 'translateX(-50%) translateY(0)' },
+      { transform: 'translateX(-50%) translateY(-320px)' }
+    ], { duration: 4000, easing: 'cubic-bezier(.22,.9,.36,1)', fill: 'forwards' });
+
+    // small sparkles / particle effect
+    let particles = setInterval(()=>{
+      let p = document.createElement('div');
+      p.style.position = 'absolute';
+      p.style.left = (window.innerWidth * 0.5 + (Math.random()*200 - 100)) + 'px';
+      p.style.top = (Math.random()*160 + 180) + 'px';
+      p.style.width = '6px'; p.style.height = '6px';
+      p.style.background = 'rgba(255,255,200,0.9)';
+      p.style.borderRadius = '50%';
+      p.style.zIndex = '100004';
+      overlay.appendChild(p);
+      p.animate([
+        { transform: 'translateY(0)', opacity: 1 },
+        { transform: 'translateY(160px)', opacity: 0 }
+      ], { duration: 1400, easing: 'linear', fill: 'forwards' });
+      setTimeout(()=>{ try{ p.remove(); }catch(e){} }, 1500);
+    }, 150);
+    // stop particles shortly after levitation completes
+    setTimeout(()=> clearInterval(particles), 5200);
+
+  }, 4200);
+
+  // overall ensure the cinematic runs for at least ~11 seconds
+  setTimeout(()=>{
+    showEndingText(overlay, 'WILLIAM WAS ABDUCTED...', 'Perhaps he will return someday.', 300);
+    try { background3.currentTime = 0; background3.play(); } catch(e){}
+  }, 11000);
+}
+
+/* ------------------ ENDING 3: Sunset ride (zoom + fade) ------------------ */
+function ending3(){
+  const overlay = createOverlay('linear-gradient(90deg, #ff9a00 0%, #ff4e7a 50%, #7b2cff 100%)');
+  // style for illusion of sun & parallax
+  let style = document.createElement('style');
+  style.innerHTML = `
+    @keyframes __sunset_move { 0%{ transform: translateX(-10%);} 100%{ transform: translateX(110%);} }
+  `;
+  document.head.appendChild(style);
+
+  // sun (decor)
+  let sun = document.createElement('div');
+  sun.style.position = 'absolute';
+  sun.style.width = '260px';
+  sun.style.height = '260px';
+  sun.style.left = '60%';
+  sun.style.bottom = '6%';
+  sun.style.borderRadius = '50%';
+  sun.style.background = 'radial-gradient(circle at 40% 30%, rgba(255,255,180,0.95), rgba(255,140,0,0.5))';
+  sun.style.boxShadow = '0 0 120px rgba(255,160,40,0.5)';
+  sun.style.zIndex = '100000';
+  overlay.appendChild(sun);
+  // animate sun moving slowly
+  sun.animate([{ transform: 'translateX(0) translateY(0)' }, { transform: 'translateX(-220px) translateY(40px)' }], { duration: 10000, fill: 'forwards', easing: 'linear' });
+
+  // William rides from left to center
+  let william = document.createElement('img');
+  william.src = dinoImg.src;
+  william.style.width = '160px';
+  william.style.height = '180px';
+  william.style.position = 'absolute';
+  william.style.bottom = Math.max(100, Math.floor(window.innerHeight * 0.12)) + 'px';
+  william.style.left = '-260px';
+  william.style.zIndex = '100002';
+  overlay.appendChild(william);
+
+  // animate william across ~6s
+  william.animate([
+    { transform: 'translateX(0) translateY(0)' },
+    { transform: `translateX(${window.innerWidth/2 + 80}px) translateY(-20px)` }
+  ], { duration: 6000, easing: 'cubic-bezier(.22,.9,.36,1)', fill: 'forwards' });
+
+  // camera zoom effect (scale overlay)
+  overlay.animate([
+    { transform: 'scale(1)' },
+    { transform: 'scale(1.35)' }
+  ], { duration: 7000, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'forwards', delay: 3000 });
+
+  // after ~10s fade to black and show text
+  setTimeout(()=>{
+    overlay.style.transition = 'background 2.2s ease, opacity 2.2s ease';
+    overlay.style.background = 'black';
+    setTimeout(()=>{
+      showEndingText(overlay, 'WILLIAM RODE INTO THE SUNSET', 'A legend forever...', 200);
+      try { background3.currentTime = 0; background3.play(); } catch(e){}
+    }, 800);
+  }, 10000);
+}
+
+/* End of endings region */
+
 </script>
 </body>
 </html>
