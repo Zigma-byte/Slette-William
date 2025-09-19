@@ -188,9 +188,8 @@ let paused=false;
 const ground=canvas.height-80;
 let cactusTimer=null;
 let jetsUnlocked = false;
-
-// 🔥 NEW: bounce counter mechanic
 let pendingBounce = null;
+let lastMilestone = 0;
 
 function isDefaultSettings(){
   for(let key in defaults){
@@ -273,7 +272,6 @@ function updateJets() {
     fc.x += fc.dx;
     ctx.drawImage(cacImg, fc.x, fc.y, fc.width, fc.height);
 
-    // 🔥 Falling cactus collision with counter
     if (dino.hitHeight > 0) {
       let collides = dino.x < fc.x + fc.width &&
                      dino.x + dino.width > fc.x &&
@@ -282,13 +280,7 @@ function updateJets() {
 
       if (collides) {
         if (!pendingBounce) {
-          // Start 1 second reaction window
           pendingBounce = { time: Date.now(), cactus: fc };
-        } else {
-          // If 1s passes without a jump → die
-          if (Date.now() - pendingBounce.time > 1000) {
-            handleGameOver();
-          }
         }
       }
     }
@@ -352,6 +344,11 @@ function update(){
 
     if(jetsUnlocked) updateJets();
 
+    // Pending bounce check
+    if (pendingBounce && Date.now() - pendingBounce.time > 1000) {
+      handleGameOver();
+    }
+
     ctx.fillStyle="black";
     ctx.font="20px Arial";
     ctx.fillText("Score: "+Math.floor(score),canvas.width-250,30);
@@ -371,13 +368,17 @@ function update(){
 setInterval(()=>{
   if(!paused&&!gameOver){
     score += parseFloat(settings.scoreRate.value)*0.5;
-    if(Math.floor(score)%10===0) milestoneSound.play();
+    let floored = Math.floor(score);
+    if (floored % 10 === 0 && floored !== lastMilestone) {
+      milestoneSound.currentTime = 0;
+      milestoneSound.play();
+      lastMilestone = floored;
+    }
   }
 },500);
 
 function jump(){
   if (pendingBounce) {
-    // Bounce instead of dying
     dino.dy = -parseFloat(settings.jumpPower.value);
     dino.isJumping = true;
     pendingBounce = null;
@@ -398,6 +399,7 @@ function restartGame(){
   cactuses=[]; jets=[]; fallingCactuses=[]; jetsUnlocked=false;
   dino.y=-10; dino.dy=0; dino.isJumping=false;
   pendingBounce=null;
+  lastMilestone=0;
   document.getElementById("pauseMenu").style.display="none";
   spawnCactus();
 }
@@ -436,41 +438,68 @@ function triggerSecretEnding(){
   overlay.style.left="0";
   overlay.style.width="100%";
   overlay.style.height="100%";
-  overlay.style.background="rgba(0,0,0,0.9)";
+  overlay.style.background="black";
   overlay.style.display="flex";
   overlay.style.justifyContent="center";
   overlay.style.alignItems="center";
   overlay.style.flexDirection="column";
   overlay.style.zIndex="9999";
   overlay.style.color="white";
+  overlay.style.overflow="hidden";
   document.body.appendChild(overlay);
 
+  // Cinematic black bars
+  let topBar=document.createElement("div");
+  let bottomBar=document.createElement("div");
+  [topBar,bottomBar].forEach(bar=>{
+    bar.style.position="absolute";
+    bar.style.width="100%";
+    bar.style.height="120px";
+    bar.style.background="black";
+    bar.style.left="0";
+    bar.style.zIndex="10000";
+  });
+  topBar.style.top="0"; bottomBar.style.bottom="0";
+  overlay.appendChild(topBar); overlay.appendChild(bottomBar);
+
+  // William sprite
   let william=document.createElement("img");
   william.src=dinoImg.src;
-  william.style.width="120px";
-  william.style.height="140px";
+  william.style.width="160px";
+  william.style.height="180px";
   william.style.position="relative";
   william.style.marginBottom="40px";
+  william.style.opacity="0";
+  william.style.animation="fadeIn 3s forwards, zoomIn 8s forwards";
   overlay.appendChild(william);
 
-  let jet=document.createElement("img");
-  jet.src=jetImg.src;
-  jet.style.width="200px";
-  jet.style.height="120px";
-  jet.style.position="relative";
-  jet.style.animation="jetAttack 3s forwards";
-  overlay.appendChild(jet);
+  // Multiple jets fly across
+  for(let i=0;i<3;i++){
+    let jet=document.createElement("img");
+    jet.src=jetImg.src;
+    jet.style.width="220px";
+    jet.style.height="140px";
+    jet.style.position="absolute";
+    jet.style.top=(100+i*150)+"px";
+    jet.style.animation=`jetAttack ${4+i}s forwards ${i*1.5}s`;
+    overlay.appendChild(jet);
+  }
 
+  // Styles
   let style=document.createElement("style");
   style.innerHTML=`
     @keyframes jetAttack {
       0% { transform: translateX(600px) scale(1); opacity:1; }
       50% { transform: translateX(0) scale(1.1); opacity:1; }
-      100% { transform: translateX(-600px) scale(0.8); opacity:0; }
+      100% { transform: translateX(-800px) scale(0.8); opacity:0; }
+    }
+    @keyframes zoomIn {
+      from { transform: scale(1); }
+      to { transform: scale(1.5) translateY(-50px); }
     }
     @keyframes floatUp {
       0% { transform: translateY(0); opacity:1; }
-      100% { transform: translateY(-400px); opacity:1; }
+      100% { transform: translateY(-400px) scale(1.2); opacity:1; }
     }
     @keyframes fadeIn {
       from { opacity: 0; }
@@ -479,23 +508,33 @@ function triggerSecretEnding(){
   `;
   document.head.appendChild(style);
 
+  // Sequence
   setTimeout(()=>{
-    jet.style.display="none";
-    william.style.filter="drop-shadow(0 0 20px yellow)";
-    william.style.animation="floatUp 5s ease-out forwards";
+    william.style.animation="floatUp 6s ease-out forwards";
+    background1.pause();
+    background2.pause();
+    background3.play();
+
     setTimeout(()=>{
-      background1.pause();
-      background2.pause();
-      background3.play();
       let msg=document.createElement("div");
-      msg.innerHTML="<center>WILLIAM ESCAPED!</center><br><span style='font-size:20px'><center>THE END..</center><br><center>Thanks for playing!!</center></span>";
-      msg.style.fontSize="40px";
+      msg.innerHTML="<center> WILLIAM ESCAPED! </center><br><span style='font-size:22px'><center>THE END..</center><br><center>Thanks for playing!!</center></span>";
+      msg.style.fontSize="44px";
       msg.style.marginTop="30px";
       msg.style.opacity="0";
-      msg.style.animation="fadeIn 3s forwards";
+      msg.style.animation="fadeIn 5s forwards";
       overlay.appendChild(msg);
-    },2000);
-  },3000);
+
+      // Add restart button at the end
+      let restartBtn = document.createElement("button");
+      restartBtn.textContent = "Restart Game";
+      restartBtn.style.padding="15px 30px";
+      restartBtn.style.fontSize="22px";
+      restartBtn.style.marginTop="40px";
+      restartBtn.style.cursor="pointer";
+      restartBtn.onclick = ()=>{location.reload();}
+      overlay.appendChild(restartBtn);
+    },3000);
+  },6000);
 }
 </script>
 </body>
