@@ -271,29 +271,21 @@ function updateJets() {
     ctx.drawImage(cacImg, fc.x, fc.y, fc.width, fc.height);
 
     if (dino.hitHeight > 0) {
-      let onTop = dino.y + dino.hitHeight <= fc.y + fc.dy &&
-          dino.y + dino.hitHeight + dino.dy >= fc.y &&
-          dino.x + dino.width > fc.x &&
-          dino.x < fc.x + fc.width;
-
-      let hitSidesOrBottom = !(onTop) &&
-          dino.x < fc.x + fc.width &&
-          dino.x + dino.width > fc.x &&
-          dino.y < fc.y + fc.height &&
-          dino.y + dino.hitHeight > fc.y;
-
-      if(hitSidesOrBottom){ handleGameOver(); }
-
-      if(onTop){
-          dino.y = fc.y - dino.hitHeight;
-          dino.dy = 0;
-          dino.isJumping = false;
-
-          // make dino move with falling cactus
-          dino.x += fc.dx;
-          dino.y += fc.dy;
+      let collides = dino.x < fc.x + fc.width &&
+                     dino.x + dino.width > fc.x &&
+                     dino.y < fc.y + fc.height &&
+                     dino.y + dino.hitHeight > fc.y;
+    
+      if (collides) {
+        // make the dino automatically jump instead of game over
+        dino.dy = -parseFloat(settings.jumpPower.value);
+        dino.isJumping = true;
+    
+        // small bounce effect from the cactus’ downward motion
+        dino.dy += fc.dy * -0.3;
       }
     }
+
 
     if(fc.y > canvas.height + 50 || fc.x + fc.width < 0){
         fallingCactuses.splice(i,1);
