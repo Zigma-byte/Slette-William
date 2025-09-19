@@ -445,277 +445,229 @@ function showEndingText(overlay, mainText, subText, delayMs = 0){
   }, delayMs);
 }
 
-/* trigger picks a random ending */
+// ===== SECRET ENDINGS =====
 function triggerSecretEnding(){
-  if (gameOver && paused) {
-    // already triggered? still allow re-trigger if not yet overlay
-    const existing = document.getElementById('__secret_overlay');
-    if (existing) return;
-  }
-  gameOver = true;
-  paused = true;
-  clearTimeout(cactusTimer);
-  // pause music/sounds
-  try { background1.pause(); background2.pause(); background1.currentTime = 0; background2.currentTime = 0; } catch(e){}
-  // pick variant
-  const endings = [ending1, ending2, ending3];
-  const choice = Math.floor(Math.random() * endings.length);
-  // debug: console.log('Ending chosen', choice+1);
-  endings[choice]();
+  const endings=[endingVictory, endingUfo, endingSunset];
+  const pick=endings[Math.floor(Math.random()*endings.length)];
+  pick();
 }
 
-/* ------------------ ENDING 1: William escapes & wins (cinematic wins) ------------------ */
-function ending1(){
-  const overlay = createOverlay('black');
+function baseOverlay(){
+  let overlay=document.createElement("div");
+  overlay.style.position="fixed";
+  overlay.style.top="0";
+  overlay.style.left="0";
+  overlay.style.width="100%";
+  overlay.style.height="100%";
+  overlay.style.background="black";
+  overlay.style.overflow="hidden";
+  overlay.style.display="flex";
+  overlay.style.justifyContent="center";
+  overlay.style.alignItems="center";
+  overlay.style.flexDirection="column";
+  overlay.style.zIndex="9999";
+  document.body.appendChild(overlay);
 
-  // subtle background flash (keeps movie look)
-  overlay.style.animation = 'none';
-  let style = document.createElement('style');
-  style.innerHTML = `
-    @keyframes __flashBG { 0%{background:black;} 50%{background: #150000;} 100%{background:black;} }
-    @keyframes __william_move { 0%{ transform: translate(0,0) rotate(0deg); } 25%{ transform: translate(50px,-50px) rotate(-12deg);} 50%{ transform: translate(140px, -10px) rotate(6deg);} 75%{ transform: translate(300px, -40px) rotate(-6deg);} 100%{ transform: translate(520px, 0px) rotate(0deg);} }
-    @keyframes __jet_fly { 0%{ transform: translateX(-100%);} 100%{ transform: translateX(150%);} }
-  `;
-  document.head.appendChild(style);
-  overlay.style.animation = '__flashBG 1s infinite alternate';
+  // cinematic black bars
+  let topBar=document.createElement("div");
+  let bottomBar=document.createElement("div");
+  [topBar,bottomBar].forEach(bar=>{
+    bar.style.position="absolute";
+    bar.style.left="0";
+    bar.style.width="100%";
+    bar.style.height="100px";
+    bar.style.background="black";
+    bar.style.zIndex="10000";
+  });
+  topBar.style.top="0"; bottomBar.style.bottom="0";
+  overlay.appendChild(topBar);
+  overlay.appendChild(bottomBar);
 
-  // William sprite
-  let william = document.createElement('img');
-  william.src = dinoImg.src;
-  william.style.width = '160px';
-  william.style.height = '180px';
-  william.style.position = 'absolute';
-  william.style.bottom = Math.max(120, Math.floor(window.innerHeight * 0.12)) + 'px';
-  william.style.left = '80px';
-  william.style.zIndex = '100002';
+  return overlay;
+}
+
+// 🎬 Ending 1: Victory (Jets + Falling Cactuses)
+function endingVictory(){
+  let overlay=baseOverlay();
+
+  let william=document.createElement("img");
+  william.src="./lw.png";
+  william.style.position="absolute";
+  william.style.bottom="80px";
+  william.style.left="100px";
+  william.style.width="120px";
+  william.style.height="140px";
+  william.style.transform="rotate(15deg)"; // "sitting" effect
   overlay.appendChild(william);
 
-  // jets that fly across (decorative)
-  let jetsArray = [];
-  for (let i=0;i<5;i++){
-    let jet = document.createElement('img');
-    jet.src = jetImg.src;
-    jet.style.width = '220px';
-    jet.style.height = '140px';
-    jet.style.position = 'absolute';
-    jet.style.top = (Math.random()* (window.innerHeight*0.5)) + 'px';
-    jet.style.left = (-400 - i*200) + 'px';
-    jet.style.opacity = '0.95';
-    jet.style.zIndex = '100001';
+  // jets fly repeatedly
+  for(let i=0;i<3;i++){
+    let jet=document.createElement("img");
+    jet.src="./fw.png";
+    jet.style.position="absolute";
+    jet.style.top=(100+ i*120)+"px";
+    jet.style.left="-300px";
+    jet.style.width="200px";
+    jet.style.height="120px";
     overlay.appendChild(jet);
-    // animate using Web Animations for consistent timing
-    let duration = 3000 + Math.random()*3000;
-    setTimeout(()=> {
-      jet.animate([
-        { transform: `translateX(0)` },
-        { transform: `translateX(${window.innerWidth + 800}px)` }
-      ], { duration, iterations: 1, easing: 'linear' });
-    }, i * 600);
-    jetsArray.push(jet);
+
+    jet.animate([
+      {transform:"translateX(0)"},
+      {transform:"translateX(1500px)"}
+    ],{duration:6000,iterations:Infinity,delay:i*1500});
   }
 
-  // falling cactuses (visual)
-  let fallingInterval = setInterval(()=>{
-    let fc = document.createElement('img');
-    fc.src = cacImg.src;
-    fc.style.position = 'absolute';
-    fc.style.width = '40px';
-    fc.style.height = '60px';
-    fc.style.left = (Math.random() * window.innerWidth) + 'px';
-    fc.style.top = '-60px';
-    fc.style.zIndex = '100001';
+  // falling cactuses
+  let fallInterval=setInterval(()=>{
+    let fc=document.createElement("img");
+    fc.src="./cac.png";
+    fc.style.position="absolute";
+    fc.style.left=Math.random()*window.innerWidth+"px";
+    fc.style.top="-60px";
+    fc.style.width="40px";
+    fc.style.height="60px";
     overlay.appendChild(fc);
-    let dur = 3000 + Math.random()*2500;
+
     fc.animate([
-      { transform: 'translateY(0)' },
-      { transform: `translateY(${window.innerHeight + 150}px)` }
-    ], { duration: dur, easing: 'linear', fill: 'forwards' });
-    setTimeout(()=> { try{ fc.remove(); }catch(e){} }, dur + 50);
-  }, 900);
+      {transform:"translateY(0)"},
+      {transform:`translateY(${window.innerHeight+100}px)`}
+    ],{duration:4000,easing:"linear"});
 
-  // animate william across a nice cinematic path lasting ~10s
-  william.style.transformOrigin = 'left bottom';
-  william.animate([
-    { transform: 'translateX(0) translateY(0) rotate(0deg)' },
-    { transform: 'translateX(200px) translateY(-60px) rotate(-12deg)' },
-    { transform: 'translateX(420px) translateY(-10px) rotate(8deg)' },
-    { transform: 'translateX(720px) translateY(-30px) rotate(-6deg)' }
-  ], { duration: 10000, easing: 'cubic-bezier(.22,.9,.36,1)', fill: 'forwards' });
+    setTimeout(()=>fc.remove(),4000);
+  },500);
 
-  // final sequence: after ~10s show text and float up (3s)
   setTimeout(()=>{
-    clearInterval(fallingInterval);
-    // william floats up / scales slightly
-    william.animate([
-      { transform: getComputedStyle(william).transform || 'translateY(0)', opacity: 1 },
-      { transform: 'translateY(-420px) scale(1.22)', opacity: 1 }
-    ], { duration: 3000, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'forwards' });
+    clearInterval(fallInterval);
+    let msg=document.createElement("div");
+    msg.innerHTML="<h1 style='color:white;font-size:40px;text-align:center;'>William Escaped and Won the War!</h1>";
+    msg.style.opacity="0";
+    msg.animate([{opacity:0},{opacity:1}],{duration:2000,fill:"forwards"});
+    overlay.appendChild(msg);
 
-    // show text (with slight delay so animation looks cinematic)
-    showEndingText(overlay, 'WILLIAM ESCAPED AND WON THE WAR!', 'THE END — thanks for playing', 900);
-    try { background3.currentTime = 0; background3.play(); } catch(e){}
-  }, 10000);
+    setTimeout(()=>location.reload(),4000);
+  },10000);
 }
 
-/* ------------------ ENDING 2: UFO Abduction ------------------ */
-function ending2(){
-  const overlay = createOverlay('radial-gradient(circle at 50% 10%, rgba(10,10,40,1), rgba(0,0,0,1))');
+// 👽 Ending 2: Jet "UFO" Abduction
+function endingUfo(){
+  let overlay=baseOverlay();
 
-  // add style for UFO beam and easing
-  let style = document.createElement('style');
-  style.innerHTML = `
-    @keyframes __ufo_descend { 0%{ transform: translateY(-500px) scale(0.8);} 60%{ transform: translateY(80px) scale(1);} 100%{ transform: translateY(80px) scale(1);} }
-    @keyframes __beam_grow { 0%{ height: 0; opacity: 0 } 100%{ height: 420px; opacity: 0.85 } }
-    @keyframes __william_levitate { 0%{ transform: translateY(0);} 100%{ transform: translateY(-320px); } }
-  `;
-  document.head.appendChild(style);
+  let jet=document.createElement("img");
+  jet.src="./fw.png";
+  jet.style.position="absolute";
+  jet.style.bottom="80px";
+  jet.style.left="-400px";
+  jet.style.width="240px";
+  jet.style.height="160px";
+  overlay.appendChild(jet);
 
-  // William center-bottom
-  let baseBottom = Math.max(120, Math.floor(window.innerHeight * 0.12));
-  let william = document.createElement('img');
-  william.src = dinoImg.src;
-  william.style.width = '160px';
-  william.style.height = '180px';
-  william.style.position = 'absolute';
-  william.style.left = '50%';
-  william.style.transform = 'translateX(-50%)';
-  william.style.bottom = baseBottom + 'px';
-  william.style.zIndex = '100002';
+  // jet lands
+  jet.animate([
+    {transform:"translateX(0)"},
+    {transform:`translateX(${window.innerWidth/2}px)`}
+  ],{duration:4000,fill:"forwards"});
+
+  // William waiting
+  let william=document.createElement("img");
+  william.src="./lw.png";
+  william.style.position="absolute";
+  william.style.bottom="80px";
+  william.style.left="150px";
+  william.style.width="120px";
+  william.style.height="140px";
   overlay.appendChild(william);
 
-  // UFO
-  let ufo = document.createElement('img');
-  ufo.src = jetImg.src;
-  ufo.style.width = '320px';
-  ufo.style.height = '220px';
-  ufo.style.position = 'absolute';
-  ufo.style.left = '50%';
-  ufo.style.transform = 'translateX(-50%)';
-  ufo.style.top = '-320px';
-  ufo.style.zIndex = '100003';
-  overlay.appendChild(ufo);
-  // animate UFO descend to middle in 4s
-  ufo.animate([
-    { transform: 'translateX(-50%) translateY(-500px) scale(0.9)' },
-    { transform: 'translateX(-50%) translateY(80px) scale(1)' }
-  ], { duration: 4000, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'forwards' });
-
-  // beam div
-  let beam = document.createElement('div');
-  beam.style.position = 'absolute';
-  beam.style.left = '50%';
-  beam.style.transform = 'translateX(-50%)';
-  beam.style.top = '190px';
-  beam.style.width = '140px';
-  beam.style.height = '0px';
-  beam.style.zIndex = '100001';
-  beam.style.background = 'linear-gradient(to bottom, rgba(255,255,210,0.9), rgba(255,255,150,0.25))';
-  beam.style.borderRadius = '6px';
-  beam.style.filter = 'blur(12px)';
-  overlay.appendChild(beam);
-
-  // after UFO reaches, grow beam and levitate William
   setTimeout(()=>{
-    beam.animate([
-      { height: '0px', opacity: 0 },
-      { height: '420px', opacity: 0.9 }
-    ], { duration: 2400, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'forwards' });
+    // cactus pilot walks out
+    let pilot=document.createElement("img");
+    pilot.src="./cac.png";
+    pilot.style.position="absolute";
+    pilot.style.bottom="80px";
+    pilot.style.left=window.innerWidth/2+"px";
+    pilot.style.width="60px";
+    pilot.style.height="90px";
+    overlay.appendChild(pilot);
 
+    pilot.animate([
+      {transform:"translateX(0)"},
+      {transform:"translateX(-120px)"}
+    ],{duration:2000,fill:"forwards"});
+  },4000);
+
+  setTimeout(()=>{
+    // William abducted into jet
     william.animate([
-      { transform: 'translateX(-50%) translateY(0)' },
-      { transform: 'translateX(-50%) translateY(-320px)' }
-    ], { duration: 4000, easing: 'cubic-bezier(.22,.9,.36,1)', fill: 'forwards' });
+      {transform:"translateY(0)"},
+      {transform:"translateY(-200px) scale(0.5)"}
+    ],{duration:3000,fill:"forwards"});
+  },6000);
 
-    // small sparkles / particle effect
-    let particles = setInterval(()=>{
-      let p = document.createElement('div');
-      p.style.position = 'absolute';
-      p.style.left = (window.innerWidth * 0.5 + (Math.random()*200 - 100)) + 'px';
-      p.style.top = (Math.random()*160 + 180) + 'px';
-      p.style.width = '6px'; p.style.height = '6px';
-      p.style.background = 'rgba(255,255,200,0.9)';
-      p.style.borderRadius = '50%';
-      p.style.zIndex = '100004';
-      overlay.appendChild(p);
-      p.animate([
-        { transform: 'translateY(0)', opacity: 1 },
-        { transform: 'translateY(160px)', opacity: 0 }
-      ], { duration: 1400, easing: 'linear', fill: 'forwards' });
-      setTimeout(()=>{ try{ p.remove(); }catch(e){} }, 1500);
-    }, 150);
-    // stop particles shortly after levitation completes
-    setTimeout(()=> clearInterval(particles), 5200);
-
-  }, 4200);
-
-  // overall ensure the cinematic runs for at least ~11 seconds
   setTimeout(()=>{
-    showEndingText(overlay, 'WILLIAM WAS ABDUCTED...', 'Perhaps he will return someday.', 300);
-    try { background3.currentTime = 0; background3.play(); } catch(e){}
-  }, 11000);
+    // jet flies away
+    jet.animate([
+      {transform:"translateX(0)"},
+      {transform:"translateX(1000px)"}
+    ],{duration:4000,fill:"forwards"});
+  },9000);
+
+  setTimeout(()=>{
+    let msg=document.createElement("div");
+    msg.innerHTML="<h1 style='color:lime;font-size:40px;text-align:center;'>William was Abducted by the Jet!</h1>";
+    msg.style.opacity="0";
+    msg.animate([{opacity:0},{opacity:1}],{duration:2000,fill:"forwards"});
+    overlay.appendChild(msg);
+
+    setTimeout(()=>location.reload(),4000);
+  },12000);
 }
 
-/* ------------------ ENDING 3: Sunset ride (zoom + fade) ------------------ */
-function ending3(){
-  const overlay = createOverlay('linear-gradient(90deg, #ff9a00 0%, #ff4e7a 50%, #7b2cff 100%)');
-  // style for illusion of sun & parallax
-  let style = document.createElement('style');
-  style.innerHTML = `
-    @keyframes __sunset_move { 0%{ transform: translateX(-10%);} 100%{ transform: translateX(110%);} }
-  `;
-  document.head.appendChild(style);
+// 🌅 Ending 3: Sunset Ride
+function endingSunset(){
+  let overlay=baseOverlay();
+  overlay.style.background="linear-gradient(to top,#003366,#ff6600)";
 
-  // sun (decor)
-  let sun = document.createElement('div');
-  sun.style.position = 'absolute';
-  sun.style.width = '260px';
-  sun.style.height = '260px';
-  sun.style.left = '60%';
-  sun.style.bottom = '6%';
-  sun.style.borderRadius = '50%';
-  sun.style.background = 'radial-gradient(circle at 40% 30%, rgba(255,255,180,0.95), rgba(255,140,0,0.5))';
-  sun.style.boxShadow = '0 0 120px rgba(255,160,40,0.5)';
-  sun.style.zIndex = '100000';
+  let sun=document.createElement("div");
+  sun.style.position="absolute";
+  sun.style.bottom="0";
+  sun.style.left="50%";
+  sun.style.transform="translateX(-50%)";
+  sun.style.width="300px";
+  sun.style.height="300px";
+  sun.style.borderRadius="50%";
+  sun.style.background="radial-gradient(circle,orange,yellow)";
   overlay.appendChild(sun);
-  // animate sun moving slowly
-  sun.animate([{ transform: 'translateX(0) translateY(0)' }, { transform: 'translateX(-220px) translateY(40px)' }], { duration: 10000, fill: 'forwards', easing: 'linear' });
 
-  // William rides from left to center
-  let william = document.createElement('img');
-  william.src = dinoImg.src;
-  william.style.width = '160px';
-  william.style.height = '180px';
-  william.style.position = 'absolute';
-  william.style.bottom = Math.max(100, Math.floor(window.innerHeight * 0.12)) + 'px';
-  william.style.left = '-260px';
-  william.style.zIndex = '100002';
+  let william=document.createElement("img");
+  william.src="./lw.png";
+  william.style.position="absolute";
+  william.style.bottom="80px";
+  william.style.left="100px";
+  william.style.width="120px";
+  william.style.height="140px";
   overlay.appendChild(william);
 
-  // animate william across ~6s
+  // William walks toward sunset
   william.animate([
-    { transform: 'translateX(0) translateY(0)' },
-    { transform: `translateX(${window.innerWidth/2 + 80}px) translateY(-20px)` }
-  ], { duration: 6000, easing: 'cubic-bezier(.22,.9,.36,1)', fill: 'forwards' });
+    {transform:"translateX(0) scale(1)"},
+    {transform:`translateX(${window.innerWidth/2-150}px) scale(0.3)`}
+  ],{duration:10000,fill:"forwards"});
 
-  // camera zoom effect (scale overlay)
+  // Sky darkens
   overlay.animate([
-    { transform: 'scale(1)' },
-    { transform: 'scale(1.35)' }
-  ], { duration: 7000, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'forwards', delay: 3000 });
+    {background:"linear-gradient(to top,#003366,#ff6600)"},
+    {background:"linear-gradient(to top,#000000,#330000)"}
+  ],{duration:10000,fill:"forwards"});
 
-  // after ~10s fade to black and show text
   setTimeout(()=>{
-    overlay.style.transition = 'background 2.2s ease, opacity 2.2s ease';
-    overlay.style.background = 'black';
-    setTimeout(()=>{
-      showEndingText(overlay, 'WILLIAM RODE INTO THE SUNSET', 'A legend forever...', 200);
-      try { background3.currentTime = 0; background3.play(); } catch(e){}
-    }, 800);
-  }, 10000);
+    let msg=document.createElement("div");
+    msg.innerHTML="<h1 style='color:orange;font-size:40px;text-align:center;'>William Rides into the Sunset...</h1>";
+    msg.style.opacity="0";
+    msg.animate([{opacity:0},{opacity:1}],{duration:2000,fill:"forwards"});
+    overlay.appendChild(msg);
+
+    setTimeout(()=>location.reload(),4000);
+  },10000);
 }
-
-/* End of endings region */
-
 </script>
 </body>
 </html>
