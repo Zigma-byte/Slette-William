@@ -432,109 +432,155 @@ function triggerSecretEnding(){
   paused = true;
   clearTimeout(cactusTimer);
 
-  let overlay=document.createElement("div");
-  overlay.style.position="fixed";
-  overlay.style.top="0";
-  overlay.style.left="0";
-  overlay.style.width="100%";
-  overlay.style.height="100%";
-  overlay.style.background="black";
-  overlay.style.display="flex";
-  overlay.style.justifyContent="center";
-  overlay.style.alignItems="center";
-  overlay.style.flexDirection="column";
-  overlay.style.zIndex="9999";
-  overlay.style.color="white";
-  overlay.style.overflow="hidden";
+  let overlay = document.createElement("div");
+  overlay.style.position = "fixed";
+  overlay.style.top = "0";
+  overlay.style.left = "0";
+  overlay.style.width = "100%";
+  overlay.style.height = "100%";
+  overlay.style.background = "black";
+  overlay.style.display = "flex";
+  overlay.style.justifyContent = "center";
+  overlay.style.alignItems = "center";
+  overlay.style.flexDirection = "column";
+  overlay.style.zIndex = "9999";
+  overlay.style.overflow = "hidden";
   document.body.appendChild(overlay);
 
   // Cinematic black bars
-  let topBar=document.createElement("div");
-  let bottomBar=document.createElement("div");
-  [topBar,bottomBar].forEach(bar=>{
-    bar.style.position="absolute";
-    bar.style.width="100%";
-    bar.style.height="120px";
-    bar.style.background="black";
-    bar.style.left="0";
-    bar.style.zIndex="10000";
+  let topBar = document.createElement("div");
+  let bottomBar = document.createElement("div");
+  [topBar, bottomBar].forEach(bar => {
+    bar.style.position = "absolute";
+    bar.style.width = "100%";
+    bar.style.height = "120px";
+    bar.style.background = "black";
+    bar.style.left = "0";
+    bar.style.zIndex = "10000";
   });
-  topBar.style.top="0"; bottomBar.style.bottom="0";
+  topBar.style.top = "0"; bottomBar.style.bottom = "0";
   overlay.appendChild(topBar); overlay.appendChild(bottomBar);
 
   // William sprite
-  let william=document.createElement("img");
-  william.src=dinoImg.src;
-  william.style.width="160px";
-  william.style.height="180px";
-  william.style.position="relative";
-  william.style.marginBottom="40px";
-  william.style.opacity="0";
-  william.style.animation="fadeIn 3s forwards, zoomIn 8s forwards";
+  let william = document.createElement("img");
+  william.src = dinoImg.src;
+  william.style.width = "160px";
+  william.style.height = "180px";
+  william.style.position = "absolute";
+  william.style.bottom = "80px";
+  william.style.left = "100px";
   overlay.appendChild(william);
 
-  // Multiple jets fly across
-  for(let i=0;i<3;i++){
-    let jet=document.createElement("img");
-    jet.src=jetImg.src;
-    jet.style.width="220px";
-    jet.style.height="140px";
-    jet.style.position="absolute";
-    jet.style.top=(100+i*150)+"px";
-    jet.style.animation=`jetAttack ${4+i}s forwards ${i*1.5}s`;
+  // Prepare multiple jets
+  let jetsArray = [];
+  for(let i=0;i<5;i++){
+    let jet = document.createElement("img");
+    jet.src = jetImg.src;
+    jet.style.width = "220px";
+    jet.style.height = "140px";
+    jet.style.position = "absolute";
+    jet.style.top = Math.random()*300+"px";
+    jet.style.left = "-300px";
     overlay.appendChild(jet);
+    jetsArray.push(jet);
   }
 
-  // Styles
-  let style=document.createElement("style");
+  // Create falling cactuses container
+  let fallingCactusDivs = [];
+
+  // Style animations
+  let style = document.createElement("style");
   style.innerHTML=`
-    @keyframes jetAttack {
-      0% { transform: translateX(600px) scale(1); opacity:1; }
-      50% { transform: translateX(0) scale(1.1); opacity:1; }
-      100% { transform: translateX(-800px) scale(0.8); opacity:0; }
+    @keyframes jetFly {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(1500px); }
     }
-    @keyframes zoomIn {
-      from { transform: scale(1); }
-      to { transform: scale(1.5) translateY(-50px); }
+    @keyframes williamJump {
+      0% { transform: translate(0,0) rotate(0deg); }
+      25% { transform: translate(50px,-50px) rotate(-15deg); }
+      50% { transform: translate(100px,0px) rotate(10deg); }
+      75% { transform: translate(150px,-30px) rotate(-5deg); }
+      100% { transform: translate(200px,0) rotate(0deg); }
     }
-    @keyframes floatUp {
-      0% { transform: translateY(0); opacity:1; }
-      100% { transform: translateY(-400px) scale(1.2); opacity:1; }
+    @keyframes flashBG {
+      0% { background:black; }
+      50% { background:rgb(50,0,0); }
+      100% { background:black; }
     }
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
+    @keyframes glowText {
+      0% { text-shadow:0 0 5px yellow; opacity:0; }
+      50% { text-shadow:0 0 25px orange; opacity:1; }
+      100% { text-shadow:0 0 5px yellow; opacity:1; }
     }
   `;
   document.head.appendChild(style);
 
-  // Sequence
+  // Start background flash
+  overlay.style.animation = "flashBG 0.5s infinite alternate";
+
+  // William fighting animation
+  william.style.animation = "williamJump 10s linear forwards";
+
+  // Jets fly repeatedly
+  jetsArray.forEach((jet, idx)=>{
+    let duration = 3 + Math.random()*2;
+    let delay = idx*1;
+    jet.style.animation = `jetFly ${duration}s linear ${delay}s infinite`;
+  });
+
+  // Generate falling cactuses every 1s
+  let cactusInterval = setInterval(()=>{
+    let fc = document.createElement("img");
+    fc.src = cacImg.src;
+    fc.style.position = "absolute";
+    fc.style.width = "40px";
+    fc.style.height = "60px";
+    fc.style.left = Math.random()*window.innerWidth + "px";
+    fc.style.top = "-60px";
+    overlay.appendChild(fc);
+    fallingCactusDivs.push(fc);
+
+    // Falling animation
+    let animDuration = 3 + Math.random()*2;
+    fc.animate([
+      { transform: "translateY(0)" },
+      { transform: `translateY(${window.innerHeight+100}px)` }
+    ], { duration: animDuration*1000, easing:"linear" });
+    
+    // Remove after falling
+    setTimeout(()=>{overlay.removeChild(fc);}, animDuration*1000);
+  }, 1000);
+
+  // End sequence after 10s
   setTimeout(()=>{
-    william.style.animation="floatUp 6s ease-out forwards";
-    background1.pause();
-    background2.pause();
-    background3.play();
+    clearInterval(cactusInterval);
+    overlay.style.animation = "";
+    
+    // William final float up
+    william.style.transition = "all 3s ease-out";
+    william.style.transform = "translateY(-400px) scale(1.2)";
 
-    setTimeout(()=>{
-      let msg=document.createElement("div");
-      msg.innerHTML="<center> WILLIAM ESCAPED! </center><br><span style='font-size:22px'><center>THE END..</center><br><center>Thanks for playing!!</center></span>";
-      msg.style.fontSize="44px";
-      msg.style.marginTop="30px";
-      msg.style.opacity="0";
-      msg.style.animation="fadeIn 5s forwards";
-      overlay.appendChild(msg);
+    // Ending text
+    let msg = document.createElement("div");
+    msg.innerHTML = "<center>✨ WILLIAM ESCAPED! ✨</center><br><span style='font-size:22px'><center>THE END..</center><br><center>Thanks for playing!!</center></span>";
+    msg.style.fontSize="44px";
+    msg.style.marginTop="30px";
+    msg.style.opacity="0";
+    msg.style.animation = "glowText 3s forwards";
+    overlay.appendChild(msg);
 
-      // Add restart button at the end
-      let restartBtn = document.createElement("button");
-      restartBtn.textContent = "Restart Game";
-      restartBtn.style.padding="15px 30px";
-      restartBtn.style.fontSize="22px";
-      restartBtn.style.marginTop="40px";
-      restartBtn.style.cursor="pointer";
-      restartBtn.onclick = ()=>{location.reload();}
-      overlay.appendChild(restartBtn);
-    },3000);
-  },6000);
+    // Restart button
+    let restartBtn = document.createElement("button");
+    restartBtn.textContent = "Restart Game";
+    restartBtn.style.padding="15px 30px";
+    restartBtn.style.fontSize="22px";
+    restartBtn.style.marginTop="40px";
+    restartBtn.style.cursor="pointer";
+    restartBtn.onclick = ()=>{location.reload();}
+    overlay.appendChild(restartBtn);
+
+    background1.pause(); background2.pause(); background3.play();
+  }, 10000);
 }
 </script>
 </body>
