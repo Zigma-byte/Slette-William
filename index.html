@@ -185,6 +185,7 @@ let normalHighScore=localStorage.getItem("normalHighScore")||0;
 let moddedHighScore=localStorage.getItem("moddedHighScore")||0;
 let gameOver=false;
 let paused=false;
+let pendingBounce=null; // store reaction window
 const ground=canvas.height-80;
 let cactusTimer=null;
 let jetsUnlocked = false;
@@ -275,17 +276,15 @@ function updateJets() {
                      dino.x + dino.width > fc.x &&
                      dino.y < fc.y + fc.height &&
                      dino.y + dino.hitHeight > fc.y;
-    
+
       if (collides) {
-        // make the dino automatically jump instead of game over
-        dino.dy = -parseFloat(settings.jumpPower.value);
-        dino.isJumping = true;
-    
-        // small bounce effect from the cactus’ downward motion
-        dino.dy += fc.dy * -0.3;
+        if (!pendingBounce) {
+          pendingBounce = { time: Date.now(), cactus: fc };
+        } else if (Date.now() - pendingBounce.time > 1000) {
+          handleGameOver();
+        }
       }
     }
-
 
     if(fc.y > canvas.height + 50 || fc.x + fc.width < 0){
         fallingCactuses.splice(i,1);
@@ -370,7 +369,12 @@ setInterval(()=>{
 },500);
 
 function jump(){
-  if(!dino.isJumping){
+  if (pendingBounce) {
+    // Bounce instead of dying
+    dino.dy = -parseFloat(settings.jumpPower.value);
+    dino.isJumping = true;
+    pendingBounce = null;
+  } else if(!dino.isJumping){
     dino.dy=-parseFloat(settings.jumpPower.value);
     dino.isJumping=true;
   }
@@ -386,6 +390,7 @@ function restartGame(){
   score=0; gameOver=false; paused=false;
   cactuses=[]; jets=[]; fallingCactuses=[]; jetsUnlocked=false;
   dino.y=-10; dino.dy=0; dino.isJumping=false;
+  pendingBounce=null;
   document.getElementById("pauseMenu").style.display="none";
   spawnCactus();
 }
