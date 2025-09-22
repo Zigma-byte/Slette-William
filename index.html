@@ -195,7 +195,28 @@ function isDefaultSettings(){
   return true;
 }
 
-function drawDino(){ ctx.drawImage(dinoImg, dino.x, dino.y, dino.width, dino.height); }
+function drawDino() {
+  ctx.save();
+  ctx.translate(dino.x + dino.width / 2, dino.y + dino.height / 2);
+
+  // squash/stretch based on vertical velocity
+  let stretch = 1 - dino.dy * 0.03; 
+  // clamp so it doesn’t invert
+  stretch = Math.max(0.6, Math.min(1.4, stretch));
+
+  let scaleX = 1 / Math.sqrt(stretch); // widen when squashed
+  let scaleY = stretch;
+
+  ctx.scale(scaleX, scaleY);
+  ctx.drawImage(
+    dinoImg,
+    -dino.width / 2,
+    -dino.height / 2,
+    dino.width,
+    dino.height
+  );
+  ctx.restore();
+}
 function drawCactus(c){ ctx.drawImage(cacImg, c.x, c.y, c.width, c.height); }
 
 function spawnCactus(){
