@@ -6,7 +6,6 @@
 <title>Slette William</title>
 <link rel="icon" type="image/x-icon" href="./lw.png">
 <style>
-  /* ---------- UI ---------- */
   :root { --ui-bg: #fff; --ui-border: #000; }
   html,body{height:100%}
   body {
@@ -57,17 +56,12 @@
   }
   #pauseMenu div{text-align:center;}
   #pauseMenu button{margin:10px; padding:10px 20px; font-size:16px; cursor:pointer;}
-
-  /* small responsive */
-  @media (max-width:600px){
-    .settings { gap:8px; padding:8px; }
-    .settings label { min-width:120px; font-size:12px; }
-  }
 </style>
 </head>
 <body>
 
 <div class="settings">
+  <!-- settings UI unchanged -->
   <label>
     Cactus Spawn Frequency (ms)
     <input type="range" min="400" max="2000" id="spawnFreq">
@@ -117,7 +111,6 @@
 </div>
 
 <script>
-/* ------------------- Core game setup (keeps original behaviour) ------------------- */
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 function resizeCanvas(){ canvas.width = window.innerWidth; canvas.height = window.innerHeight - 120; }
@@ -135,11 +128,12 @@ const passSound = new Audio('./sound.mp3');
 const milestoneSound = new Audio('./over.mp3');
 const background1 = new Audio('./back.mp3');
 const background2 = new Audio('./back2.mp3');
-const background3 = new Audio('./end.mp3'); // ending music
+const background3 = new Audio('./end.mp3');
 background1.volume = 0.4;
 background2.volume = 0.4;
 background3.volume = 0.6;
 
+/* ---------- Settings UI ---------- */
 const settings = {
   spawnFreq: document.getElementById('spawnFreq'),
   dinoSpeed: document.getElementById('dinoSpeed'),
@@ -174,8 +168,10 @@ document.getElementById('resetSettings').addEventListener('click', () => {
   location.reload();
 });
 
+/* ---------- Game state ---------- */
 let dino = { x:50, y:-10, width:60, height:70, hitHeight: parseFloat(settings.hitHeight.value), dy:0, isJumping:false };
 let cactuses = [], jets = [], fallingCactuses = [];
+let jetParticles = [], impactParticles = [];
 let score = 0;
 let highScore = localStorage.getItem('highScore') || 0;
 let normalHighScore = localStorage.getItem('normalHighScore') || 0;
@@ -187,38 +183,21 @@ let pendingBounce = null;
 let lastMilestone = 0;
 const ground = () => canvas.height - 80;
 
-function isDefaultSettings(){
-  for (let key in defaults){
-    let current = parseFloat(settings[key].value);
-    if (Math.abs(current - defaults[key]) > 0.001) return false;
-  }
-  return true;
-}
-
+/* ---------- Drawing ---------- */
 function drawDino() {
   ctx.save();
   ctx.translate(dino.x + dino.width / 2, dino.y + dino.height / 2);
-
-  // squash/stretch based on vertical velocity
   let stretch = 1 - dino.dy * 0.03; 
-  // clamp so it doesn’t invert
   stretch = Math.max(0.6, Math.min(1.4, stretch));
-
-  let scaleX = 1 / Math.sqrt(stretch); // widen when squashed
+  let scaleX = 1 / Math.sqrt(stretch);
   let scaleY = stretch;
-
   ctx.scale(scaleX, scaleY);
-  ctx.drawImage(
-    dinoImg,
-    -dino.width / 2,
-    -dino.height / 2,
-    dino.width,
-    dino.height
-  );
+  ctx.drawImage(dinoImg, -dino.width/2, -dino.height/2, dino.width, dino.height);
   ctx.restore();
 }
 function drawCactus(c){ ctx.drawImage(cacImg, c.x, c.y, c.width, c.height); }
 
+/* ---------- Spawning ---------- */
 function spawnCactus(){
   if (paused || gameOver) return;
   let width = Math.floor(Math.random()*20)+20;
@@ -233,8 +212,6 @@ function spawnCactus(){
   }
   cactusTimer = setTimeout(spawnCactus, Math.random()*700 + parseFloat(settings.spawnFreq.value));
 }
-
-// Jet spawn/update (keeps original)
 function spawnJet() {
   if (paused || gameOver) return;
   jets.push({
@@ -248,10 +225,24 @@ function spawnJet() {
   });
   setTimeout(spawnJet, Math.random()*5000 + 5000);
 }
+
+/* ---------- Updates ---------- */
 function updateJets(){
+  // jets
   for (let i=0;i<jets.length;i++){
     let jet = jets[i];
     jet.x += jet.speed;
+
+    // jet exhaust
+    jetParticles.push({
+      x: jet.x + jet.width/2,
+      y: jet.y + jet.height,
+      dx: (Math.random()-0.5)*1.5,
+      dy: Math.random()*1.5+0.5,
+      size: Math.random()*3+2,
+      life: 30
+    });
+
     if (Date.now() - jet.spawnTime > 450) {
       jet.dropCooldown--;
       if (jet.dropCooldown <= 0) {
@@ -260,16 +251,27 @@ function updateJets(){
         jet.dropCooldown = Math.floor(Math.random()*60)+25;
       }
     }
-    if (jet.x > canvas.width + 100) { jets.splice(i,1); i--; } else {
-      ctx.drawImage(jetImg, jet.x, jet.y, jet.width, jet.height);
-    }
+    if (jet.x > canvas.width + 100) { jets.splice(i,1); i--; } 
+    else { ctx.drawImage(jetImg, jet.x, jet.y, jet.width, jet.height); }
+  }
+
+  // jet particles
+  for (let i=jetParticles.length-1;i>=0;i--){
+    let p = jetParticles[i];
+    p.x += p.dx; p.y += p.dy; p.life--;
+    ctx.fillStyle = "orange";
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
+    if (p.life <= 0) jetParticles.splice(i,1);
   }
 
   // falling cactuses
   for (let i=0;i<fallingCactuses.length;i++){
     let fc = fallingCactuses[i];
     fc.y += fc.dy; fc.x += fc.dx;
+    fc.dy += 0.3;
     ctx.drawImage(cacImg, fc.x, fc.y, fc.width, fc.height);
+
+    // collision
     if (dino.hitHeight > 0){
       let collides = dino.x < fc.x + fc.width &&
                      dino.x + dino.width > fc.x &&
@@ -279,7 +281,33 @@ function updateJets(){
         if (!pendingBounce) pendingBounce = { time: Date.now(), cactus: fc };
       }
     }
+
+    // impact with ground
+    if (fc.y + fc.height >= ground()+60) {
+      fc.y = ground()+60 - fc.height;
+      for (let j=0;j<6;j++){
+        impactParticles.push({
+          x: fc.x + fc.width/2,
+          y: fc.y + fc.height,
+          dx: (Math.random()-0.5)*3,
+          dy: -Math.random()*2-1,
+          size: Math.random()*3+2,
+          life: 25
+        });
+      }
+      fc.dy = 0;
+    }
+
     if (fc.y > canvas.height + 50 || fc.x + fc.width < 0) { fallingCactuses.splice(i,1); i--; }
+  }
+
+  // impact particles
+  for (let i=impactParticles.length-1;i>=0;i--){
+    let p = impactParticles[i];
+    p.x += p.dx; p.y += p.dy; p.dy += 0.2; p.life--;
+    ctx.fillStyle = "brown";
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
+    if (p.life <= 0) impactParticles.splice(i,1);
   }
 }
 
