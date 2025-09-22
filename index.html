@@ -111,18 +111,26 @@
 </div>
 
 <script>
+/* ---------- Canvas setup ---------- */
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 function resizeCanvas(){ canvas.width = window.innerWidth; canvas.height = window.innerHeight - 120; }
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 
+/* ---------- Images & audio (preload) ---------- */
 const dinoImg = new Image();
 const cacImg  = new Image();
 const jetImg  = new Image();
 dinoImg.src = './lw.png';
 cacImg.src  = './cac.png';
 jetImg.src  = './fw.png';
+
+let imagesToLoad = 3;
+[dinoImg, cacImg, jetImg].forEach(img => {
+  img.addEventListener('load', () => { imagesToLoad--; startIfReady(); });
+  img.addEventListener('error', () => { imagesToLoad--; startIfReady(); });
+});
 
 const passSound = new Audio('./sound.mp3');
 const milestoneSound = new Audio('./over.mp3');
@@ -154,28 +162,32 @@ const displayValues = {
 };
 
 const defaults = { spawnFreq:1000, dinoSpeed:6, jumpPower:12, gravity:0.6, scoreRate:0.2, hardJump:12.5, hitHeight:20 };
-for (let key in settings) {
-  settings[key].value = localStorage.getItem(key) || defaults[key];
-  displayValues[key + 'Val'].textContent = settings[key].value;
-  settings[key].addEventListener('input', () => {
-    displayValues[key + 'Val'].textContent = settings[key].value;
-    localStorage.setItem(key, settings[key].value);
-    if (key === 'hitHeight') dino.hitHeight = parseFloat(settings.hitHeight.value);
-  });
-}
-document.getElementById('resetSettings').addEventListener('click', () => {
-  for (let key in defaults) localStorage.setItem(key, defaults[key]);
-  location.reload();
-});
 
-/* ---------- Game state ---------- */
-let dino = { x:50, y:-10, width:60, height:70, hitHeight: parseFloat(settings.hitHeight.value), dy:0, isJumping:false };
+/* safe initializer for inputs, ensure values exist */
+for (let key in settings) {
+  const stored = localStorage.getItem(key);
+  const value = (stored !== null) ? stored : String(defaults[key]);
+  settings[key].value = value;
+  displayValues[key + 'Val'].textContent = settings[key].value;
+}
+
+/* ---------- Game state (dino declared before settings listeners that reference it) ---------- */
+let dino = {
+  x:50,
+  y:-10,
+  width:60,
+  height:70,
+  hitHeight: parseFloat(settings.hitHeight.value),
+  dy:0,
+  isJumping:false
+};
+
 let cactuses = [], jets = [], fallingCactuses = [];
 let jetParticles = [], impactParticles = [];
 let score = 0;
-let highScore = localStorage.getItem('highScore') || 0;
-let normalHighScore = localStorage.getItem('normalHighScore') || 0;
-let moddedHighScore = localStorage.getItem('moddedHighScore') || 0;
+let highScore = Number(localStorage.getItem('highScore')) || 0;
+let normalHighScore = Number(localStorage.getItem('normalHighScore')) || 0;
+let moddedHighScore = Number(localStorage.getItem('moddedHighScore')) || 0;
 let gameOver = false, paused = false;
 let cactusTimer = null;
 let jetsUnlocked = false;
@@ -183,11 +195,29 @@ let pendingBounce = null;
 let lastMilestone = 0;
 const ground = () => canvas.height - 80;
 
+/* ---------- Settings listeners (update display & localStorage) ---------- */
+for (let key in settings) {
+  settings[key].addEventListener('input', () => {
+    displayValues[key + 'Val'].textContent = settings[key].value;
+    localStorage.setItem(key, settings[key].value);
+    if (key === 'hitHeight') {
+      // only update dino.hitHeight if dino exists
+      if (typeof dino !== 'undefined' && dino) dino.hitHeight = parseFloat(settings.hitHeight.value);
+    }
+  });
+}
+document.getElementById('resetSettings').addEventListener('click', () => {
+  for (let key in defaults) {
+    localStorage.setItem(key, defaults[key]);
+  }
+  location.reload();
+});
+
 /* ---------- Drawing ---------- */
 function drawDino() {
   ctx.save();
   ctx.translate(dino.x + dino.width / 2, dino.y + dino.height / 2);
-  let stretch = 1 - dino.dy * 0.03; 
+  let stretch = 1 - dino.dy * 0.03;
   stretch = Math.max(0.6, Math.min(1.4, stretch));
   let scaleX = 1 / Math.sqrt(stretch);
   let scaleY = stretch;
@@ -210,7 +240,9 @@ function spawnCactus(){
   } else {
     cactuses.push({ x: canvas.width + gap, y: ground() + (60 - height), width, height });
   }
-  cactusTimer = setTimeout(spawnCactus, Math.random()*700 + parseFloat(settings.spawnFreq.value));
+  // schedule next
+  const nextDelay = Math.max(200, Math.random()*700 + parseFloat(settings.spawnFreq.value));
+  cactusTimer = setTimeout(spawnCactus, nextDelay);
 }
 function spawnJet() {
   if (paused || gameOver) return;
@@ -312,14 +344,27 @@ function updateJets(){
 }
 
 /* ------------------- Game loop & controls ------------------- */
+function isDefaultSettings(){
+  // checks whether current settings match the default values (used for separating normal / modded highs)
+  for (let k in defaults) {
+    const cur = localStorage.getItem(k);
+    const def = String(defaults[k]);
+    if ((cur === null ? def : cur) !== def) return false;
+  }
+  return true;
+}
+
 function handleGameOver(){
+  if (gameOver) return;
   gameOver = true;
   // highscore handling
-  if (score > highScore) { highScore = score; localStorage.setItem('highScore', highScore); }
-  if (isDefaultSettings() && score > normalHighScore) { normalHighScore = score; localStorage.setItem('normalHighScore', normalHighScore); }
-  else if (!isDefaultSettings() && score > moddedHighScore) { moddedHighScore = score; localStorage.setItem('moddedHighScore', moddedHighScore); }
-  alert('Game Over! Score: ' + Math.floor(score));
-  document.location.reload();
+  if (score > highScore) { highScore = Math.floor(score); localStorage.setItem('highScore', highScore); }
+  if (isDefaultSettings() && score > normalHighScore) { normalHighScore = Math.floor(score); localStorage.setItem('normalHighScore', normalHighScore); }
+  else if (!isDefaultSettings() && score > moddedHighScore) { moddedHighScore = Math.floor(score); localStorage.setItem('moddedHighScore', moddedHighScore); }
+  setTimeout(()=> {
+    alert('Game Over! Score: ' + Math.floor(score));
+    document.location.reload();
+  }, 50);
 }
 
 function update(){
@@ -340,7 +385,12 @@ function update(){
         handleGameOver();
       }
 
-      if (c.x + c.width < 0) { cactuses.splice(i,1); passSound.currentTime = 0; passSound.play(); score++; i--; }
+      if (c.x + c.width < 0) {
+        cactuses.splice(i,1);
+        try { passSound.currentTime = 0; passSound.play(); } catch(e){}
+        score++;
+        i--;
+      }
     }
 
     drawDino();
@@ -367,7 +417,8 @@ setInterval(()=>{
     score += parseFloat(settings.scoreRate.value) * 0.5;
     let floored = Math.floor(score);
     if (floored % 10 === 0 && floored !== lastMilestone) {
-      milestoneSound.currentTime = 0; milestoneSound.play(); lastMilestone = floored;
+      try { milestoneSound.currentTime = 0; milestoneSound.play(); } catch(e){}
+      lastMilestone = floored;
     }
   }
 }, 500);
@@ -397,23 +448,34 @@ function restartGame(){
 
 /* controls */
 document.addEventListener('keydown', (e)=>{
-  if (e.code === 'Space') { jump(); if (!musicPlaying) playRandomTrack(); }
+  if (e.code === 'Space') { e.preventDefault(); jump(); if (!musicPlaying) playRandomTrack(); }
   if (e.code === 'KeyP') togglePause();
 });
 canvas.addEventListener('click', ()=>{ jump(); if (!musicPlaying) playRandomTrack(); });
 canvas.addEventListener('touchstart', (e)=>{ e.preventDefault(); jump(); if (!musicPlaying) playRandomTrack(); }, { passive:false });
 
-dinoImg.onload = () => { update(); spawnCactus(); };
-
 /* music helper */
 let musicPlaying = false;
 function playRandomTrack(){
   musicPlaying = true;
-  let pick = Math.random() < 0.5 ? background1 : background2;
-  background1.pause(); background2.pause();
-  background1.currentTime = 0; background2.currentTime = 0;
-  pick.play();
-  pick.onended = () => { musicPlaying = false; playRandomTrack(); };
+  const pick = (Math.random() < 0.5) ? background1 : background2;
+  try { background1.pause(); background2.pause(); background1.currentTime = 0; background2.currentTime = 0; } catch(e){}
+  pick.play().catch(()=>{ /* ignore play exceptions */ });
+  const onEnd = () => {
+    musicPlaying = false;
+    // small timeout to avoid busy recursion
+    setTimeout(()=>{ if(!musicPlaying && !paused && !gameOver) playRandomTrack(); }, 250);
+    pick.removeEventListener('ended', onEnd);
+  };
+  pick.addEventListener('ended', onEnd);
+}
+
+/* ------------------- Preload start helper ------------------- */
+function startIfReady(){
+  if (imagesToLoad > 0) return;
+  // Start game loop and first spawn
+  update();
+  spawnCactus();
 }
 
 /* ------------------- Randomized cinematic endings (3 variants) ------------------- */
@@ -509,26 +571,21 @@ function triggerSecretEnding(){
   // pick variant
   const endings = [ending1, ending2, ending3];
   const choice = Math.floor(Math.random() * endings.length);
-  // debug: console.log('Ending chosen', choice+1);
   endings[choice]();
 }
 
-/* ------------------ ENDING 1: William escapes & wins (cinematic wins) ------------------ */
+/* ENDING 1 */
 function ending1(){
   const overlay = createOverlay('black');
 
-  // subtle background flash (keeps movie look)
   overlay.style.animation = 'none';
   let style = document.createElement('style');
   style.innerHTML = `
     @keyframes __flashBG { 0%{background:black;} 50%{background: #150000;} 100%{background:black;} }
-    @keyframes __william_move { 0%{ transform: translate(0,0) rotate(0deg); } 25%{ transform: translate(50px,-50px) rotate(-12deg);} 50%{ transform: translate(140px, -10px) rotate(6deg);} 75%{ transform: translate(300px, -40px) rotate(-6deg);} 100%{ transform: translate(520px, 0px) rotate(0deg);} }
-    @keyframes __jet_fly { 0%{ transform: translateX(-100%);} 100%{ transform: translateX(150%);} }
   `;
   document.head.appendChild(style);
   overlay.style.animation = '__flashBG 1s infinite alternate';
 
-  // William sprite
   let william = document.createElement('img');
   william.src = dinoImg.src;
   william.style.width = '160px';
@@ -539,8 +596,6 @@ function ending1(){
   william.style.zIndex = '100002';
   overlay.appendChild(william);
 
-  // jets that fly across (decorative)
-  let jetsArray = [];
   for (let i=0;i<5;i++){
     let jet = document.createElement('img');
     jet.src = jetImg.src;
@@ -552,7 +607,6 @@ function ending1(){
     jet.style.opacity = '0.95';
     jet.style.zIndex = '100001';
     overlay.appendChild(jet);
-    // animate using Web Animations for consistent timing
     let duration = 3000 + Math.random()*3000;
     setTimeout(()=> {
       jet.animate([
@@ -560,10 +614,8 @@ function ending1(){
         { transform: `translateX(${window.innerWidth + 800}px)` }
       ], { duration, iterations: 1, easing: 'linear' });
     }, i * 600);
-    jetsArray.push(jet);
   }
 
-  // falling cactuses (visual)
   let fallingInterval = setInterval(()=>{
     let fc = document.createElement('img');
     fc.src = cacImg.src;
@@ -582,7 +634,6 @@ function ending1(){
     setTimeout(()=> { try{ fc.remove(); }catch(e){} }, dur + 50);
   }, 900);
 
-  // animate william across a nice cinematic path lasting ~10s
   william.style.transformOrigin = 'left bottom';
   william.animate([
     { transform: 'translateX(0) translateY(0) rotate(0deg)' },
@@ -591,35 +642,28 @@ function ending1(){
     { transform: 'translateX(720px) translateY(-30px) rotate(-6deg)' }
   ], { duration: 10000, easing: 'cubic-bezier(.22,.9,.36,1)', fill: 'forwards' });
 
-  // final sequence: after ~10s show text and float up (3s)
   setTimeout(()=>{
     clearInterval(fallingInterval);
-    // william floats up / scales slightly
     william.animate([
       { transform: getComputedStyle(william).transform || 'translateY(0)', opacity: 1 },
       { transform: 'translateY(-420px) scale(1.22)', opacity: 1 }
     ], { duration: 3000, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'forwards' });
 
-    // show text (with slight delay so animation looks cinematic)
     showEndingText(overlay, 'WILLIAM ESCAPED AND WON THE WAR!', 'THE END — thanks for playing', 900);
     try { background3.currentTime = 0; background3.play(); } catch(e){}
   }, 10000);
 }
 
-/* ------------------ ENDING 2: UFO Abduction ------------------ */
+/* ENDING 2 */
 function ending2(){
   const overlay = createOverlay('radial-gradient(circle at 50% 10%, rgba(10,10,40,1), rgba(0,0,0,1))');
 
-  // add style for UFO beam and easing
   let style = document.createElement('style');
   style.innerHTML = `
     @keyframes __ufo_descend { 0%{ transform: translateY(-500px) scale(0.8);} 60%{ transform: translateY(80px) scale(1);} 100%{ transform: translateY(80px) scale(1);} }
-    @keyframes __beam_grow { 0%{ height: 0; opacity: 0 } 100%{ height: 420px; opacity: 0.85 } }
-    @keyframes __william_levitate { 0%{ transform: translateY(0);} 100%{ transform: translateY(-320px); } }
   `;
   document.head.appendChild(style);
 
-  // William center-bottom
   let baseBottom = Math.max(120, Math.floor(window.innerHeight * 0.12));
   let william = document.createElement('img');
   william.src = dinoImg.src;
@@ -632,7 +676,6 @@ function ending2(){
   william.style.zIndex = '100002';
   overlay.appendChild(william);
 
-  // UFO
   let ufo = document.createElement('img');
   ufo.src = jetImg.src;
   ufo.style.width = '320px';
@@ -643,13 +686,11 @@ function ending2(){
   ufo.style.top = '-320px';
   ufo.style.zIndex = '100003';
   overlay.appendChild(ufo);
-  // animate UFO descend to middle in 4s
   ufo.animate([
     { transform: 'translateX(-50%) translateY(-500px) scale(0.9)' },
     { transform: 'translateX(-50%) translateY(80px) scale(1)' }
   ], { duration: 4000, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'forwards' });
 
-  // beam div
   let beam = document.createElement('div');
   beam.style.position = 'absolute';
   beam.style.left = '50%';
@@ -663,7 +704,6 @@ function ending2(){
   beam.style.filter = 'blur(12px)';
   overlay.appendChild(beam);
 
-  // after UFO reaches, grow beam and levitate William
   setTimeout(()=>{
     beam.animate([
       { height: '0px', opacity: 0 },
@@ -675,7 +715,6 @@ function ending2(){
       { transform: 'translateX(-50%) translateY(-320px)' }
     ], { duration: 4000, easing: 'cubic-bezier(.22,.9,.36,1)', fill: 'forwards' });
 
-    // small sparkles / particle effect
     let particles = setInterval(()=>{
       let p = document.createElement('div');
       p.style.position = 'absolute';
@@ -692,29 +731,26 @@ function ending2(){
       ], { duration: 1400, easing: 'linear', fill: 'forwards' });
       setTimeout(()=>{ try{ p.remove(); }catch(e){} }, 1500);
     }, 150);
-    // stop particles shortly after levitation completes
     setTimeout(()=> clearInterval(particles), 5200);
 
   }, 4200);
 
-  // overall ensure the cinematic runs for at least ~11 seconds
   setTimeout(()=>{
     showEndingText(overlay, 'WILLIAM WAS ABDUCTED...', 'Perhaps he will return someday.', 300);
     try { background3.currentTime = 0; background3.play(); } catch(e){}
   }, 11000);
 }
 
-/* ------------------ ENDING 3: Sunset ride (zoom + fade) ------------------ */
+/* ENDING 3 */
 function ending3(){
   const overlay = createOverlay('linear-gradient(90deg, #ff9a00 0%, #ff4e7a 50%, #7b2cff 100%)');
-  // style for illusion of sun & parallax
+
   let style = document.createElement('style');
   style.innerHTML = `
     @keyframes __sunset_move { 0%{ transform: translateX(-10%);} 100%{ transform: translateX(110%);} }
   `;
   document.head.appendChild(style);
 
-  // sun (decor)
   let sun = document.createElement('div');
   sun.style.position = 'absolute';
   sun.style.width = '260px';
@@ -726,10 +762,8 @@ function ending3(){
   sun.style.boxShadow = '0 0 120px rgba(255,160,40,0.5)';
   sun.style.zIndex = '100000';
   overlay.appendChild(sun);
-  // animate sun moving slowly
   sun.animate([{ transform: 'translateX(0) translateY(0)' }, { transform: 'translateX(-220px) translateY(40px)' }], { duration: 10000, fill: 'forwards', easing: 'linear' });
 
-  // William rides from left to center
   let william = document.createElement('img');
   william.src = dinoImg.src;
   william.style.width = '160px';
@@ -740,19 +774,16 @@ function ending3(){
   william.style.zIndex = '100002';
   overlay.appendChild(william);
 
-  // animate william across ~6s
   william.animate([
     { transform: 'translateX(0) translateY(0)' },
     { transform: `translateX(${window.innerWidth/2 + 80}px) translateY(-20px)` }
   ], { duration: 6000, easing: 'cubic-bezier(.22,.9,.36,1)', fill: 'forwards' });
 
-  // camera zoom effect (scale overlay)
   overlay.animate([
     { transform: 'scale(1)' },
     { transform: 'scale(1.35)' }
   ], { duration: 7000, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'forwards', delay: 3000 });
 
-  // after ~10s fade to black and show text
   setTimeout(()=>{
     overlay.style.transition = 'background 2.2s ease, opacity 2.2s ease';
     overlay.style.background = 'black';
