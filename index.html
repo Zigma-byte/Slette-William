@@ -328,18 +328,6 @@ function updateJets(){
         });
       }
       fc.dy = 0;
-    }
-
-    if (fc.y > canvas.height + 50 || fc.x + fc.width < 0) { fallingCactuses.splice(i,1); i--; }
-  }
-
-  // impact particles
-  for (let i=impactParticles.length-1;i>=0;i--){
-    let p = impactParticles[i];
-    p.x += p.dx; p.y += p.dy; p.dy += 0.2; p.life--;
-    ctx.fillStyle = "brown";
-    ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
-    if (p.life <= 0) impactParticles.splice(i,1);
   }
 }
 
