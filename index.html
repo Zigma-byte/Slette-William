@@ -297,13 +297,23 @@ function updateJets(){
   }
 
   // falling cactuses
-  for (let i=0;i<fallingCactuses.length;i++){
+    // falling cactuses
+  for (let i = fallingCactuses.length - 1; i >= 0; i--){
     let fc = fallingCactuses[i];
-    fc.y += fc.dy; fc.x += fc.dx;
-    fc.dy += 0.3;
+
+    // ensure flags exist
+    if (typeof fc.bounced === 'undefined') fc.bounced = false;
+    if (typeof fc.passed === 'undefined') fc.passed = false;
+
+    // physics
+    fc.y += fc.dy;
+    fc.x += fc.dx;
+    fc.dy += 0.3; // gravity
+
+    // draw (if it's passed and falling through ground you may still draw it)
     ctx.drawImage(cacImg, fc.x, fc.y, fc.width, fc.height);
 
-    // collision
+    // collision with dino (unchanged)
     if (dino.hitHeight > 0){
       let collides = dino.x < fc.x + fc.width &&
                      dino.x + dino.width > fc.x &&
@@ -314,22 +324,61 @@ function updateJets(){
       }
     }
 
-    // impact with ground
-    if (fc.y + fc.height >= ground()+60) {
-      fc.y = ground()+60 - fc.height;
-      for (let j=0;j<6;j++){
-        impactParticles.push({
-          x: fc.x + fc.width/2,
-          y: fc.y + fc.height,
-          dx: (Math.random()-0.5)*3,
-          dy: -Math.random()*2-1,
-          size: Math.random()*3+2,
-          life: 25
-        });
+    // if already passed through ground, let it fall off screen and then remove it
+    if (fc.passed) {
+      if (fc.y > canvas.height + 200) {
+        fallingCactuses.splice(i, 1);
       }
-      fc.dy = 0;
+      continue;
+    }
+
+    // impact with ground: handle bounce first time, pass-through on second impact
+    const groundY = ground() + 60;
+    if (fc.y + fc.height >= groundY) {
+      // if not bounced yet -> bounce
+      if (!fc.bounced) {
+        // clamp to ground
+        fc.y = groundY - fc.height;
+
+        // spawn impact particles
+        for (let j=0;j<6;j++){
+          impactParticles.push({
+            x: fc.x + fc.width/2,
+            y: fc.y + fc.height,
+            dx: (Math.random()-0.5)*3,
+            dy: -Math.random()*2-1,
+            size: Math.random()*3+2,
+            life: 25
+          });
+        }
+
+        // invert and dampen vertical velocity for a bounce
+        fc.dy = -Math.abs(fc.dy) * (0.55 + Math.random() * 0.25); // bounce with some randomness
+        // small horizontal jitter on bounce
+        fc.dx += (Math.random() - 0.5) * 0.6;
+
+        fc.bounced = true;
+      } else {
+        // already bounced once -> second impact: fall through ground
+        // give it a little extra downward velocity so it visibly 'plunges' through
+        fc.passed = true;
+        fc.dy = Math.max(4, Math.abs(fc.dy)) + 2;
+        // spawn a stronger particle burst
+        for (let j=0;j<10;j++){
+          impactParticles.push({
+            x: fc.x + fc.width/2 + (Math.random()-0.5)*8,
+            y: groundY,
+            dx: (Math.random()-0.5)*4,
+            dy: -Math.random()*3,
+            size: Math.random()*3+2,
+            life: 28
+          });
+        }
+        // nudge the cactus slightly below ground so it visibly continues downward
+        fc.y = groundY + 4;
+      }
+    }
   }
-}
 
 /* ------------------- Game loop & controls ------------------- */
 function isDefaultSettings(){
