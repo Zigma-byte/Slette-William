@@ -285,7 +285,8 @@ function updateJets(){
           width:20, 
           height:40, 
           dy:5, 
-          dx 
+          dx, 
+          bounced:false // track bounce
         });
         jet.dropCooldown = Math.floor(Math.random()*60)+25;
       }
@@ -323,46 +324,43 @@ function updateJets(){
     // draw
     ctx.drawImage(cacImg, fc.x, fc.y, fc.width, fc.height);
 
-    // collision with dino
-    if (dino.hitHeight > 0){
-      let collides = dino.x < fc.x + fc.width &&
-                     dino.x + dino.width > fc.x &&
-                     dino.y < fc.y + fc.height &&
-                     dino.y + dino.hitHeight > fc.y;
-      if (collides) {
-        if (!pendingBounce) pendingBounce = { time: Date.now(), cactus: fc };
+    const groundY = ground() + 60;
+
+    if (!fc.bounced) {
+      // before bounce → still killable
+      if (dino.hitHeight > 0){
+        let collides = dino.x < fc.x + fc.width &&
+                       dino.x + dino.width > fc.x &&
+                       dino.y < fc.y + fc.height &&
+                       dino.y + dino.hitHeight > fc.y;
+        if (collides) {
+          if (!pendingBounce) pendingBounce = { time: Date.now(), cactus: fc };
+        }
       }
     }
 
-    // impact with ground
-    const groundY = ground() + 60;
+    // ground impact logic
     if (fc.y + fc.height >= groundY) {
-      // clamp to ground
-      fc.y = groundY - fc.height;
-      fc.dy = 0;
-      fc.dx = 0;
+      if (!fc.bounced) {
+        // first bounce
+        fc.y = groundY - fc.height;
+        fc.dy *= -0.5; // bounce upward but weaker
+        fc.bounced = true;
 
-      // move into main cactus list (becomes collidable)
-      cactuses.push({
-        x: fc.x,
-        y: fc.y,
-        width: fc.width,
-        height: fc.height
-      });
-
-      // remove from falling list
-      fallingCactuses.splice(i, 1);
-
-      // spawn impact particles
-      for (let j=0;j<8;j++){
-        impactParticles.push({
-          x: fc.x + fc.width/2,
-          y: fc.y + fc.height,
-          dx: (Math.random()-0.5)*3,
-          dy: -Math.random()*2-1,
-          size: Math.random()*3+2,
-          life: 25
-        });
+        // impact particles
+        for (let j=0;j<8;j++){
+          impactParticles.push({
+            x: fc.x + fc.width/2,
+            y: fc.y + fc.height,
+            dx: (Math.random()-0.5)*3,
+            dy: -Math.random()*2-1,
+            size: Math.random()*3+2,
+            life: 25
+          });
+        }
+      } else {
+        // second hit → let it fall through (remove)
+        fallingCactuses.splice(i, 1);
       }
     }
   }
